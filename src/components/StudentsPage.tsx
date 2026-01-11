@@ -20,15 +20,34 @@ const StudentsPage = () => {
 
   // Sample student data (in real app, this would come from API)
   const students: Student[] = [
-    { id: 1, name: 'አበበ ከበደ', englishName: 'Abebe Kebede', age: 15, gender: 'Male', section: '9A', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: '#' },
-    { id: 2, name: 'ሰላም ተስፋዬ', englishName: 'Selam Tesfaye', age: 14, gender: 'Female', section: '9A', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: '#' },
-    { id: 3, name: 'ዳዊት መኮንን', englishName: 'Dawit Mekonnen', age: 15, gender: 'Male', section: '9B', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: '#' },
-    { id: 4, name: 'ሄለን ገብረ', englishName: 'Helen Gebre', age: 14, gender: 'Female', section: '9B', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: '#' },
-    { id: 5, name: 'ዮሐንስ አለሙ', englishName: 'Yohannes Alemu', age: 15, gender: 'Male', section: '9C', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: '#' },
-    { id: 6, name: 'ማርያም በላቸው', englishName: 'Maryam Belachew', age: 14, gender: 'Female', section: '9C', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: '#' },
-    { id: 7, name: 'ሳሙኤል ታደሰ', englishName: 'Samuel Tadese', age: 15, gender: 'Male', section: '9D', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: '#' },
-    { id: 8, name: 'ብርቱካን ወርቁ', englishName: 'Birtukan Worku', age: 14, gender: 'Female', section: '9D', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: '#' },
+    { id: 1, name: 'አበበ ከበደ', englishName: 'Abebe Kebede', age: 15, gender: 'Male', section: '9A', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
+    { id: 2, name: 'ሰላም ተስፋዬ', englishName: 'Selam Tesfaye', age: 14, gender: 'Female', section: '9A', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
+    { id: 3, name: 'ዳዊት መኮንን', englishName: 'Dawit Mekonnen', age: 15, gender: 'Male', section: '9B', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
+    { id: 4, name: 'ሄለን ገብረ', englishName: 'Helen Gebre', age: 14, gender: 'Female', section: '9B', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
+    { id: 5, name: 'ዮሐንስ አለሙ', englishName: 'Yohannes Alemu', age: 15, gender: 'Male', section: '9C', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
+    { id: 6, name: 'ማርያም በላቸው', englishName: 'Maryam Belachew', age: 14, gender: 'Female', section: '9C', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
+    { id: 7, name: 'ሳሙኤል ታደሰ', englishName: 'Samuel Tadese', age: 15, gender: 'Male', section: '9D', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
+    { id: 8, name: 'ብርቱካን ወርቁ', englishName: 'Birtukan Worku', age: 14, gender: 'Female', section: '9D', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
   ];
+
+  // Download function for student profile
+  const handleDownload = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      // Fallback: open in new tab
+      window.open(url, '_blank');
+    }
+  };
 
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
@@ -234,15 +253,15 @@ const StudentsPage = () => {
                   </div>
                 </div>
 
-                <motion.a
-                  href={selectedStudent.downloadUrl}
+                <motion.button
+                  onClick={() => handleDownload(selectedStudent.imageUrl, `${selectedStudent.englishName.replace(/\s+/g, '_')}_profile.jpg`)}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="btn-gradient w-full flex items-center justify-center gap-2"
                 >
                   <Download className="w-5 h-5" />
                   Download Photo
-                </motion.a>
+                </motion.button>
               </div>
             </motion.div>
           </motion.div>

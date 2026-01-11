@@ -25,6 +25,25 @@ const ResultsPage = () => {
   const galleryImages = Object.values(resultImages);
   const studentIds = Object.keys(resultImages);
 
+  // Download function for result images
+  const handleDownload = async (url: string, filename: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      // Fallback: open in new tab
+      window.open(url, '_blank');
+    }
+  };
+
   const handleSearch = () => {
     setError('');
     if (!studentId.trim()) {
@@ -191,16 +210,15 @@ const ResultsPage = () => {
                   className="w-full rounded-xl"
                 />
                 <div className="mt-4 flex gap-3">
-                  <motion.a
-                    href={resultImages[studentId]}
-                    download
+                  <motion.button
+                    onClick={() => handleDownload(resultImages[studentId], `result_${studentId}.jpg`)}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="btn-gradient flex-1 flex items-center justify-center gap-2"
                   >
                     <Download className="w-5 h-5" />
                     Download Result
-                  </motion.a>
+                </motion.button>
                 </div>
               </div>
             </motion.div>
@@ -256,8 +274,19 @@ const ResultsPage = () => {
                 alt={`Result ${galleryIndex + 1}`}
                 className="w-full rounded-xl"
               />
-              <div className="text-center mt-4 text-muted-foreground">
-                {galleryIndex + 1} / {galleryImages.length}
+              <div className="text-center mt-4">
+                <p className="text-muted-foreground mb-3">
+                  {galleryIndex + 1} / {galleryImages.length}
+                </p>
+                <motion.button
+                  onClick={() => handleDownload(galleryImages[galleryIndex], `result_${studentIds[galleryIndex]}.jpg`)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="btn-gradient inline-flex items-center gap-2 px-6"
+                >
+                  <Download className="w-5 h-5" />
+                  Download This Result
+                </motion.button>
               </div>
             </motion.div>
           </motion.div>
