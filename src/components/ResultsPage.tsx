@@ -1,16 +1,139 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Award, ImageIcon, X, HelpCircle, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Award, ImageIcon, X, HelpCircle, Download, User } from 'lucide-react';
+
+// Name to ID mapping for "Forgot ID" feature
+const nameToIdMap: Record<string, string> = {
+  "ሀሴት ደረጀ": "219335",
+  "ሀናን አብዱልማሊክ ጄይላ": "219336",
+  "ሀናን ጊኢደር ቃሲም": "219337",
+  "ሀዊ ጀማል ሙሳ": "219338",
+  "ሁበይብ ዘይኑ አባተ": "219339",
+  "ሄመን ይትባረክ ታዬ": "219340",
+  "ሄኖን ጌታቸው ካሳ": "219341",
+  "ሊዲያ ሽፈራው ሀይሌ": "219342",
+  "ሊዲያ ቴዎድሮስ ከበደ": "219343",
+  "ልዑል ወንድፍራው ፍቃዱ": "219344",
+  "መሐመድ ኢድሪስ አደን": "219345",
+  "መሀመድ ዲምራኤል ሀምዳኤል": "219346",
+  "ሙሀሙድ በሺር ሻፊ": "219347",
+  "መሊካ ቃሲም ርጋ": "219348",
+  "መና ታደሰ አርጋው": "219349",
+  "መፅሔት አዲስ ፀጋዬ": "219350",
+  "ሙስተቂም አብዱላሂ አደም": "219351",
+  "ሙስተቂማ አብዱሰላም አህመድ": "219352",
+  "ማህሌት አንድነት አየለ": "219353",
+  "ማረፊያ ተስፋዬ በላቸው": "219354",
+  "ማክቤል አብዱ አብዱረኡፍ": "219355",
+  "ሜሮን ገዛኸኝ ጌታቸው": "219356",
+  "ሠላም አንሙት ጋሹ": "219357",
+  "ሰልማ ዩሱፍ መሀመድ": "219358",
+  "ሲሀን ዚያድ አብዱማሊክ": "219359",
+  "ሳሊም ዩሱፍ መሃመድ": "219360",
+  "ሳሌም የኋላሸት በዳሶ": "219361",
+  "ሳሙኤል የሻነው አለሙ": "219362",
+  "ሳሮን መክብብ ብርሃኑ": "219363",
+  "ሳሮን በሀይሉ ደርሶ": "219364",
+  "ሶሊያና ደረጀ ከፍያለው": "219365",
+  "ሶልያና ናትናኤል አሰፋ": "219366",
+  "ሶልያና ከተማ ታምሩ": "219367",
+  "ሩሽዳ ሳዲቅ ኡስማኤል": "219368",
+  "ራኬብ ሳምሶን ደምሴ": "219369",
+  "ራኬብ ዮናስ ደጉ": "219370",
+  "ራኬብ ጌታቸው መታፈሪያ": "219371",
+  "ቅዱስ አለኸኝ ስለሺ": "219372",
+  "ቅዱስ ወንደሰን ጋሻው": "219373",
+  "በአምላክ ውብዬ ተሰማ": "219374",
+  "በእምነት ካሳሁን አበበ": "219375",
+  "ቢላል ሙስጠፋ ጀማል": "219376",
+  "ባህራን አበራ ለማ": "219377",
+  "ባስልኤል አወቀ ለገሰ": "219378",
+  "ቤተሳይዳ ሲሣይ ጉግሳ": "219379",
+  "ቤቴልሔም ሽመልስ ግዛው": "219380",
+  "ቤቴልሔም ቴዎድሮስ": "219381",
+  "ቤኒያስ ተስፋዬ ተፈራ": "219382",
+  "ብሌን ተፈሪ ሙሉጌታ": "219383",
+  "ብሌን እንግዳ አለም": "219384",
+  "ብስራት ሐብታሙ ታደሰ": "219385",
+  "ብሩክነው ማርሸት ተስፋዬ": "219386",
+  "ትንቢት በለጠ ወርቁ": "219387",
+  "ቶማስ ስንታየሁ በቀለ": "219388",
+  "ነጃ ኤርሚያስ ይሳቅ": "219389",
+  "ነፃነት ግዛቸው አዘነ": "219390",
+  "ኑራን አሪፍ ዘይዳን": "219391",
+  "ናሂላ አዳነ ቢረሳ": "219392",
+  "ናሆም አንተነህ ቸርነት": "219393",
+  "ናታን ሰለሞን ማሞ": "219394",
+  "ናታን አለማየሁ ሞላ": "219395",
+  "ናትናኤል ባይሳ አለሙ": "219396",
+  "ናኦድ ሠለሞን ወርቁ": "219397",
+  "ናዮሚ ወጋየው ንጉሴ": "219398",
+  "ንፍታሌም ዘመድኩን አጥናፉ": "219399",
+  "አላዛር ዘውዱ ለማ": "219400",
+  "አሚር ሙራድ አብዶ": "219401",
+  "አማኑኤል ሰሙንጉስ ወልደስላሴ": "219402",
+  "አማኑኤል ገብረህይወት ወስላሴ": "219403",
+  "አማናዊት ብርሀነ በቀለ": "219404",
+  "አማናዊት ቴዎድሮስ አምዴ": "219405",
+  "አስቤል ቢኒያም አየሁ": "219406",
+  "አቡበከር ፀጋዬ ዋሲሁን": "219407",
+  "አብዱላሂ ሀሰን አብዱላሂ": "219408",
+  "አዳም ዘመዴ የሺጥላ": "219409",
+  "አዶኒያስ ወንዱ ግርማ": "219410",
+  "አፍናን አፈንዲ ዩሱፍ": "219411",
+  "አፎሚያ ሚካኤል ወርቁ": "219412",
+  "አፎሚያ ሰላም ክበበው": "219413",
+  "ኢምራን አብዱልአዚዝ አሊዩ": "219414",
+  "ኢክማን አብዶ አሊ": "219415",
+  "ኢዛና ደጀኔ ካሳ": "219416",
+  "ኢዮሲያስ አለሙ ለቤቶ": "219417",
+  "ኤሊያና መሳይ ተክሉ": "219418",
+  "ኤልቤተል ተፈሪ መኮንን": "219419",
+  "ኤልቤት ዳንኤል ተሾመ": "219420",
+  "ኤልያና ሳምሶን ታዬ": "219421",
+  "ኤልዳና መኳንንት ዘውዴ": "219422",
+  "ኤደን ማንያዘዋል ከበደ": "219423",
+  "ኤዶት ሽብሩ ተሰማ": "219424",
+  "እስራኤል ሀይሉ ሁንዴ": "219425",
+  "እዩኤል መላኩ ተካ": "219426",
+  "ኦርዮን የትሻወርቅ ደጀኔ": "219427",
+  "ካሌብ እንዳለ ደበላ": "219428",
+  "ኬብሮን ስዩም ውብሸት": "219429",
+  "ኬብሮን ኢሳያስ ሀይሉ": "219430",
+  "ዘፀአት ፍሬው አድማሱ": "219431",
+  "ዚክራ ባህሩዲን ዩሱፍ": "219432",
+  "ዝማሬ ዳዊት ሞገስ": "219433",
+  "የአብስራ ታሪኩ ፋንታሁን": "219434",
+  "የእውነት ምስክር አበበ": "219435",
+  "ዩስራ ሁሴን ሰማን": "219436",
+  "ያቤፅ አክሊሉ ጥበበ": "219437",
+  "ያብፀጋ ሔኖክ ነጋ": "219438",
+  "ያፌት ዘመዴ ከበደ": "219439",
+  "ይዲድያ መኮንን ደምሴ": "219440",
+  "ዮሀና ሰብስቤ ዘሪሁን": "219441",
+  "ዮሴፍ መሀሪ ይማም": "219442",
+  "ዳግም ረታ ሽመልስ": "219443",
+  "ገሊላ መስፍን ከበደ": "219444",
+  "ገሊላ ተስፋዬ አበበ": "219445",
+  "ጰንየኤል ወንደሰን ጀንበሬ": "219446",
+  "ፂዮን ይልሙ ደሳለኝ": "219447",
+  "ፅኑቃል ደመቀ ወጋየሁ": "219448",
+  "ፊክራ ሀምዛ ሙክታር": "219449",
+  "ፌቨን ሳሙኤል ይልማ": "219450",
+  "ዮሀና ሰርክአለም ሲሳይ": "219451"
+};
 
 const ResultsPage = () => {
   const [studentId, setStudentId] = useState('');
   const [showResult, setShowResult] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
-  const [galleryIndex, setGalleryIndex] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
+  const [showForgetId, setShowForgetId] = useState(false);
+  const [forgetNameInput, setForgetNameInput] = useState('');
+  const [forgetFeedback, setForgetFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [error, setError] = useState('');
 
-  // Sample result images mapping (in real app, this would be fetched from API)
+  // Sample result images mapping
   const resultImages: Record<string, string> = {
     '219353': 'https://i.postimg.cc/tJZBYQJf/photo-2025-06-26-19-11-47.jpg',
     '219354': 'https://i.postimg.cc/ZKBcKMVn/photo-2025-06-26-19-12-10.jpg',
@@ -22,7 +145,6 @@ const ResultsPage = () => {
     '219360': 'https://i.postimg.cc/BZNJjMfn/photo-2025-06-26-19-18-13.jpg',
   };
 
-  const galleryImages = Object.values(resultImages);
   const studentIds = Object.keys(resultImages);
 
   // Download function for result images
@@ -39,7 +161,6 @@ const ResultsPage = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
-      // Fallback: open in new tab
       window.open(url, '_blank');
     }
   };
@@ -55,6 +176,68 @@ const ResultsPage = () => {
     } else {
       setError('Student ID not found. Please check your ID or contact support.');
     }
+  };
+
+  const handleForgetSubmit = () => {
+    const nameInput = forgetNameInput.trim();
+    
+    if (!nameInput) {
+      setForgetFeedback({ message: 'Please type your name', type: 'error' });
+      return;
+    }
+
+    const normalizedInput = nameInput.normalize().toLowerCase();
+
+    // Try exact match first
+    for (const storedName in nameToIdMap) {
+      const normalizedStoredName = storedName.normalize().toLowerCase();
+      if (normalizedStoredName === normalizedInput) {
+        const foundId = nameToIdMap[storedName];
+        setForgetFeedback({ message: 'Result found — opening...', type: 'success' });
+        setTimeout(() => {
+          setShowForgetId(false);
+          setForgetNameInput('');
+          setForgetFeedback(null);
+          setStudentId(foundId);
+          setShowResult(true);
+        }, 500);
+        return;
+      }
+    }
+
+    // Look for partial matches
+    const partialMatches: { name: string; id: string }[] = [];
+    for (const storedName in nameToIdMap) {
+      const normalizedStoredName = storedName.normalize().toLowerCase();
+      if (normalizedStoredName.includes(normalizedInput)) {
+        partialMatches.push({ name: storedName, id: nameToIdMap[storedName] });
+      }
+    }
+
+    if (partialMatches.length === 1) {
+      const found = partialMatches[0];
+      setForgetFeedback({ message: `Did you mean "${found.name}"? Opening...`, type: 'success' });
+      setTimeout(() => {
+        setShowForgetId(false);
+        setForgetNameInput('');
+        setForgetFeedback(null);
+        setStudentId(found.id);
+        setShowResult(true);
+      }, 2000);
+      return;
+    } else if (partialMatches.length > 1) {
+      const suggestions = partialMatches.slice(0, 5).map(match => match.name).join(', ');
+      setForgetFeedback({ 
+        message: `Multiple matches found: ${suggestions}${partialMatches.length > 5 ? '...' : ''}`, 
+        type: 'error' 
+      });
+      return;
+    }
+
+    setForgetFeedback({ 
+      message: 'Not found. Make sure you typed your name correctly in Amharic.', 
+      type: 'error' 
+    });
   };
 
   const containerVariants = {
@@ -133,10 +316,22 @@ const ResultsPage = () => {
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setShowGallery(true)}
                 className="btn-ghost"
+                title="View All Results"
               >
                 <ImageIcon className="w-5 h-5" />
               </motion.button>
             </div>
+
+            {/* Forgot ID Button */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowForgetId(true)}
+              className="w-full mt-4 py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-muted-foreground hover:text-foreground transition-all flex items-center justify-center gap-2"
+            >
+              <User className="w-4 h-4" />
+              Forgot your ID? Find by name
+            </motion.button>
           </motion.div>
 
           {/* Help Section */}
@@ -218,7 +413,7 @@ const ResultsPage = () => {
                   >
                     <Download className="w-5 h-5" />
                     Download Result
-                </motion.button>
+                  </motion.button>
                 </div>
               </div>
             </motion.div>
@@ -289,6 +484,89 @@ const ResultsPage = () => {
                   className="btn-ghost px-8"
                 >
                   Exit Gallery
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Forgot ID Modal */}
+      <AnimatePresence>
+        {showForgetId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              setShowForgetId(false);
+              setForgetNameInput('');
+              setForgetFeedback(null);
+            }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass-card p-6 max-w-md w-full"
+            >
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-cyan-600 flex items-center justify-center mx-auto mb-4">
+                  <User className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold gradient-text mb-2">Forgot your ID?</h3>
+                <p className="text-muted-foreground text-sm">
+                  Type your name in Amharic as saved in the ministry result.
+                </p>
+              </div>
+
+              <input
+                type="text"
+                placeholder="ስምዎን ያስገቡ (Type your name)"
+                value={forgetNameInput}
+                onChange={(e) => setForgetNameInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleForgetSubmit()}
+                className="input-glass mb-4 text-center"
+                autoFocus
+              />
+
+              <AnimatePresence>
+                {forgetFeedback && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className={`text-sm mb-4 text-center ${
+                      forgetFeedback.type === 'success' ? 'text-emerald-400' : 'text-destructive'
+                    }`}
+                  >
+                    {forgetFeedback.message}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              <div className="flex gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleForgetSubmit}
+                  className="btn-gradient flex-1"
+                >
+                  Find Result
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    setShowForgetId(false);
+                    setForgetNameInput('');
+                    setForgetFeedback(null);
+                  }}
+                  className="btn-ghost"
+                >
+                  Cancel
                 </motion.button>
               </div>
             </motion.div>
