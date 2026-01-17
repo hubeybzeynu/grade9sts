@@ -12,12 +12,48 @@ const ScreenLock = ({ onUnlock }: ScreenLockProps) => {
   const [error, setError] = useState('');
   const [isShaking, setIsShaking] = useState(false);
 
-  const correctPassword = '18481848';
+  // 6 one-time-use passwords
+  const allPasswords = [
+    '18481848',
+    '20242024',
+    '12345678',
+    '87654321',
+    '11223344',
+    '99887766'
+  ];
+
+  // Get used passwords from localStorage
+  const getUsedPasswords = (): string[] => {
+    try {
+      const stored = localStorage.getItem('portal_used_passwords');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  // Mark a password as used
+  const markPasswordAsUsed = (pwd: string) => {
+    const used = getUsedPasswords();
+    if (!used.includes(pwd)) {
+      used.push(pwd);
+      localStorage.setItem('portal_used_passwords', JSON.stringify(used));
+    }
+  };
 
   const handleSubmit = () => {
-    if (password === correctPassword) {
+    const usedPasswords = getUsedPasswords();
+    const availablePasswords = allPasswords.filter(p => !usedPasswords.includes(p));
+    
+    if (availablePasswords.includes(password)) {
       setError('');
+      markPasswordAsUsed(password);
       onUnlock();
+    } else if (allPasswords.includes(password) && usedPasswords.includes(password)) {
+      setError('This password has already been used');
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 500);
+      setPassword('');
     } else {
       setError('Incorrect password');
       setIsShaking(true);
