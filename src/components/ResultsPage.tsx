@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Award, ImageIcon, X, HelpCircle, Download, User } from 'lucide-react';
+import { Search, Award, ImageIcon, X, HelpCircle, Download, User, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Name to ID mapping for "Forgot ID" feature
 const nameToIdMap: Record<string, string> = {
@@ -382,6 +382,42 @@ const ResultsPage = () => {
             onClick={() => setShowResult(false)}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
           >
+            {/* Left Arrow */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                const currentIndex = studentIds.indexOf(studentId);
+                if (currentIndex > 0) {
+                  setStudentId(studentIds[currentIndex - 1]);
+                } else {
+                  setStudentId(studentIds[studentIds.length - 1]);
+                }
+              }}
+              className="absolute left-4 md:left-8 p-3 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-colors z-10"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </motion.button>
+
+            {/* Right Arrow */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                const currentIndex = studentIds.indexOf(studentId);
+                if (currentIndex < studentIds.length - 1) {
+                  setStudentId(studentIds[currentIndex + 1]);
+                } else {
+                  setStudentId(studentIds[0]);
+                }
+              }}
+              className="absolute right-4 md:right-8 p-3 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-colors z-10"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </motion.button>
+
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -399,6 +435,13 @@ const ResultsPage = () => {
               </motion.button>
 
               <div className="glass-card p-4 overflow-hidden">
+                <div className="text-center mb-2">
+                  <span className="text-sm text-muted-foreground font-mono">ID: {studentId}</span>
+                  <span className="mx-2 text-muted-foreground">•</span>
+                  <span className="text-sm text-muted-foreground">
+                    {studentIds.indexOf(studentId) + 1} of {studentIds.length}
+                  </span>
+                </div>
                 <img
                   src={resultImages[studentId]}
                   alt="Ministry Result"
