@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, User, Download, Filter } from 'lucide-react';
+import { Search, X, User, Download, Filter, Send, Instagram } from 'lucide-react';
 
 interface Student {
   id: number;
@@ -9,6 +9,8 @@ interface Student {
   age: number;
   gender: 'Male' | 'Female';
   section: string;
+  telegram?: string;
+  instagram?: string;
   imageUrl: string;
   downloadUrl: string;
 }
@@ -20,14 +22,14 @@ const StudentsPage = () => {
 
   // Sample student data (in real app, this would come from API)
   const students: Student[] = [
-    { id: 1, name: 'አበበ ከበደ', englishName: 'Abebe Kebede', age: 15, gender: 'Male', section: '9A', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
-    { id: 2, name: 'ሰላም ተስፋዬ', englishName: 'Selam Tesfaye', age: 14, gender: 'Female', section: '9A', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
-    { id: 3, name: 'ዳዊት መኮንን', englishName: 'Dawit Mekonnen', age: 15, gender: 'Male', section: '9B', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
-    { id: 4, name: 'ሄለን ገብረ', englishName: 'Helen Gebre', age: 14, gender: 'Female', section: '9B', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
-    { id: 5, name: 'ዮሐንስ አለሙ', englishName: 'Yohannes Alemu', age: 15, gender: 'Male', section: '9C', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
-    { id: 6, name: 'ማርያም በላቸው', englishName: 'Maryam Belachew', age: 14, gender: 'Female', section: '9C', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
-    { id: 7, name: 'ሳሙኤል ታደሰ', englishName: 'Samuel Tadese', age: 15, gender: 'Male', section: '9D', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
-    { id: 8, name: 'ብርቱካን ወርቁ', englishName: 'Birtukan Worku', age: 14, gender: 'Female', section: '9D', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
+    { id: 1, name: 'አበበ ከበደ', englishName: 'Abebe Kebede', age: 15, gender: 'Male', section: '9A', telegram: 'https://t.me/example1', instagram: 'https://instagram.com/example1', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
+    { id: 2, name: 'ሰላም ተስፋዬ', englishName: 'Selam Tesfaye', age: 14, gender: 'Female', section: '9A', telegram: 'https://t.me/example2', instagram: 'https://instagram.com/example2', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
+    { id: 3, name: 'ዳዊት መኮንን', englishName: 'Dawit Mekonnen', age: 15, gender: 'Male', section: '9B', telegram: 'https://t.me/example3', instagram: 'https://instagram.com/example3', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
+    { id: 4, name: 'ሄለን ገብረ', englishName: 'Helen Gebre', age: 14, gender: 'Female', section: '9B', telegram: 'https://t.me/example4', instagram: 'https://instagram.com/example4', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
+    { id: 5, name: 'ሁበይብ ዘይኑ አባተ', englishName: 'Hubeyb Zeynu Abate', age: 15, gender: 'Male', section: '9B', telegram: 'https://t.me/HUBPROMAN', instagram: 'https://www.instagram.com/hubproman', imageUrl: 'https://i.postimg.cc/PJmN2qcr/photo-2025-06-16-07-25-19.jpg', downloadUrl: 'https://i.postimg.cc/dsfdQkjd/photo-2025-06-16-07-25-19.jpg?dl=1' },
+    { id: 6, name: 'ማርያም በላቸው', englishName: 'Maryam Belachew', age: 14, gender: 'Female', section: '9C', telegram: 'https://t.me/example6', instagram: 'https://instagram.com/example6', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
+    { id: 7, name: 'ሳሙኤል ታደሰ', englishName: 'Samuel Tadese', age: 15, gender: 'Male', section: '9D', telegram: 'https://t.me/example7', instagram: 'https://instagram.com/example7', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
+    { id: 8, name: 'ብርቱካን ወርቁ', englishName: 'Birtukan Worku', age: 14, gender: 'Female', section: '9D', telegram: 'https://t.me/example8', instagram: 'https://instagram.com/example8', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
   ];
 
   // Download function for student profile
@@ -238,7 +240,7 @@ const StudentsPage = () => {
                 <h2 className="text-2xl font-bold mb-1">{selectedStudent.name}</h2>
                 <p className="text-primary font-medium mb-4">{selectedStudent.englishName}</p>
 
-                <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-3 gap-4 mb-4">
                   <div className="glass-card p-3">
                     <p className="text-xs text-muted-foreground">Age</p>
                     <p className="font-bold">{selectedStudent.age}</p>
@@ -252,6 +254,38 @@ const StudentsPage = () => {
                     <p className="font-bold">#{selectedStudent.id}</p>
                   </div>
                 </div>
+
+                {/* Social Links */}
+                {(selectedStudent.telegram || selectedStudent.instagram) && (
+                  <div className="flex gap-3 justify-center mb-4">
+                    {selectedStudent.telegram && (
+                      <motion.a
+                        href={selectedStudent.telegram}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="p-3 rounded-xl bg-[#0088cc]/20 hover:bg-[#0088cc]/30 border border-[#0088cc]/30 transition-colors"
+                        title="Telegram"
+                      >
+                        <Send className="w-5 h-5 text-[#0088cc]" />
+                      </motion.a>
+                    )}
+                    {selectedStudent.instagram && (
+                      <motion.a
+                        href={selectedStudent.instagram}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="p-3 rounded-xl bg-gradient-to-br from-[#f09433]/20 via-[#e6683c]/20 to-[#bc1888]/20 hover:from-[#f09433]/30 hover:via-[#e6683c]/30 hover:to-[#bc1888]/30 border border-[#e6683c]/30 transition-colors"
+                        title="Instagram"
+                      >
+                        <Instagram className="w-5 h-5 text-[#e6683c]" />
+                      </motion.a>
+                    )}
+                  </div>
+                )}
 
                 <motion.button
                   onClick={() => handleDownload(selectedStudent.imageUrl, `${selectedStudent.englishName.replace(/\s+/g, '_')}_profile.jpg`)}
