@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Home, BookOpen, Users, Award, ChevronLeft } from 'lucide-react';
+import { Home, BookOpen, Users, Award, ChevronLeft, FileCheck, ClipboardList } from 'lucide-react';
 
 interface NavigationProps {
   currentPage: string;
