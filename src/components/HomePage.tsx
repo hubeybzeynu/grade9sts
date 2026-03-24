@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { BookOpen, Users, Award, GraduationCap, Sparkles } from 'lucide-react';
+import { BookOpen, Users, Award, GraduationCap, Sparkles, ClipboardList, FileCheck } from 'lucide-react';
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
@@ -27,6 +27,20 @@ const HomePage = ({ onNavigate }: HomePageProps) => {
       description: 'View your exam results',
       icon: Award,
       gradient: 'from-amber-500 to-orange-500',
+    },
+    {
+      id: 'mid-results',
+      title: 'Mid Exam',
+      description: 'View mid-term results',
+      icon: ClipboardList,
+      gradient: 'from-violet-500 to-purple-500',
+    },
+    {
+      id: 'final-results',
+      title: 'Final Exam',
+      description: 'View final exam results',
+      icon: FileCheck,
+      gradient: 'from-rose-500 to-red-500',
     },
   ];
 
