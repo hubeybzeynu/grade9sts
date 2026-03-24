@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { BookOpen, Users, Award, GraduationCap, Sparkles } from 'lucide-react';
+import { BookOpen, Users, Award, GraduationCap, Sparkles, ClipboardList, FileCheck } from 'lucide-react';
 
 interface HomePageProps {
   onNavigate: (page: string) => void;
