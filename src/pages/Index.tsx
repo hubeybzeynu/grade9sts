@@ -50,7 +50,7 @@ const Index = () => {
       case 'textbooks':
         return <TextbooksPage />;
       case 'students':
-        return <StudentsPage />;
+        return <StudentsPage onNavigate={handleNavigate} />;
       case 'results':
         return <ResultsPage />;
       case 'mid-results':
