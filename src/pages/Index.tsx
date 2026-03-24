@@ -10,7 +10,7 @@ import ExamResultPage from '@/components/ExamResultPage';
 import ScreenLock from '@/components/ScreenLock';
 import WelcomeOnboarding from '@/components/WelcomeOnboarding';
 
-type PageType = 'home' | 'textbooks' | 'students' | 'results';
+type PageType = 'home' | 'textbooks' | 'students' | 'results' | 'mid-results' | 'final-results';
 
 const STORAGE_KEY = 'portal_unlocked';
 const ONBOARDING_KEY = 'portal_onboarding_complete';
