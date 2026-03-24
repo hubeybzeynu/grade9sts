@@ -12,6 +12,8 @@ const Navigation = ({ currentPage, onNavigate }: NavigationProps) => {
     { id: 'textbooks', label: 'Textbooks', icon: BookOpen },
     { id: 'students', label: 'Students', icon: Users },
     { id: 'results', label: 'Results', icon: Award },
+    { id: 'mid-results', label: 'Mid', icon: ClipboardList },
+    { id: 'final-results', label: 'Final', icon: FileCheck },
   ];
 
   return (
