@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, User, Download, Filter, Send, Instagram } from 'lucide-react';
+import { Search, X, User, Download, Filter, Send, Instagram, ClipboardList, FileCheck } from 'lucide-react';
 
 interface Student {
   id: number;
@@ -13,6 +13,10 @@ interface Student {
   instagram?: string;
   imageUrl: string;
   downloadUrl: string;
+}
+
+interface StudentsPageProps {
+  onNavigate?: (page: string) => void;
 }
 
 const StudentsPage = () => {
