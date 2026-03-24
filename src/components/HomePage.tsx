@@ -28,6 +28,20 @@ const HomePage = ({ onNavigate }: HomePageProps) => {
       icon: Award,
       gradient: 'from-amber-500 to-orange-500',
     },
+    {
+      id: 'mid-results',
+      title: 'Mid Exam',
+      description: 'View mid-term results',
+      icon: ClipboardList,
+      gradient: 'from-violet-500 to-purple-500',
+    },
+    {
+      id: 'final-results',
+      title: 'Final Exam',
+      description: 'View final exam results',
+      icon: FileCheck,
+      gradient: 'from-rose-500 to-red-500',
+    },
   ];
 
   const containerVariants = {
