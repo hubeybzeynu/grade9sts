@@ -19,7 +19,7 @@ interface StudentsPageProps {
   onNavigate?: (page: string) => void;
 }
 
-const StudentsPage = () => {
+const StudentsPage = ({ onNavigate }: StudentsPageProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [genderFilter, setGenderFilter] = useState<'all' | 'Male' | 'Female'>('all');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
