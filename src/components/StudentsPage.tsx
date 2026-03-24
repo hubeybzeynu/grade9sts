@@ -291,6 +291,36 @@ const StudentsPage = ({ onNavigate }: StudentsPageProps) => {
                   </div>
                 )}
 
+                {/* Mid & Final Result Shortcuts */}
+                {onNavigate && (
+                  <div className="flex gap-3 justify-center mb-4">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setSelectedStudent(null);
+                        onNavigate('mid-results');
+                      }}
+                      className="flex-1 p-3 rounded-xl bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <ClipboardList className="w-4 h-4 text-violet-400" />
+                      <span className="text-sm text-violet-300">Mid Result</span>
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setSelectedStudent(null);
+                        onNavigate('final-results');
+                      }}
+                      className="flex-1 p-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <FileCheck className="w-4 h-4 text-rose-400" />
+                      <span className="text-sm text-rose-300">Final Result</span>
+                    </motion.button>
+                  </div>
+                )}
+
                 <motion.button
                   onClick={() => handleDownload(selectedStudent.imageUrl, `${selectedStudent.englishName.replace(/\s+/g, '_')}_profile.jpg`)}
                   whileHover={{ scale: 1.02 }}
