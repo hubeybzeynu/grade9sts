@@ -14,7 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      final_results: {
+        Row: {
+          answer_image_url: string | null
+          created_at: string
+          id: string
+          result_image_url: string
+          student_id: string
+          student_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          answer_image_url?: string | null
+          created_at?: string
+          id?: string
+          result_image_url: string
+          student_id: string
+          student_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          answer_image_url?: string | null
+          created_at?: string
+          id?: string
+          result_image_url?: string
+          student_id?: string
+          student_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      mid_results: {
+        Row: {
+          answer_image_url: string | null
+          created_at: string
+          id: string
+          result_image_url: string
+          student_id: string
+          student_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          answer_image_url?: string | null
+          created_at?: string
+          id?: string
+          result_image_url: string
+          student_id: string
+          student_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          answer_image_url?: string | null
+          created_at?: string
+          id?: string
+          result_image_url?: string
+          student_id?: string
+          student_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
