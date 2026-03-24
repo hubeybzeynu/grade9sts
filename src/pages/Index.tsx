@@ -6,6 +6,7 @@ import HomePage from '@/components/HomePage';
 import TextbooksPage from '@/components/TextbooksPage';
 import StudentsPage from '@/components/StudentsPage';
 import ResultsPage from '@/components/ResultsPage';
+import ExamResultPage from '@/components/ExamResultPage';
 import ScreenLock from '@/components/ScreenLock';
 import WelcomeOnboarding from '@/components/WelcomeOnboarding';
 
