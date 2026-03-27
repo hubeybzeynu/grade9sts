@@ -44,7 +44,7 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
       setLoading(true);
       const { data, error } = await externalSupabase
         .from(tableName)
-        .select('student_id, result_image_url, answer_image_url, student_name, subject, grade_group')
+        .select('student_id, result_image_url, answer_image_url, student_name, subject, grade_group, student_password')
         .order('student_id');
       
       if (data) {
