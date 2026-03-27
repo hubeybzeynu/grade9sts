@@ -19,6 +19,9 @@ interface ExamResultPageProps {
 
 const ExamResultPage = ({ type }: ExamResultPageProps) => {
   const [studentId, setStudentId] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [pendingResult, setPendingResult] = useState<ExamResult | null>(null);
   const [results, setResults] = useState<ExamResult[]>([]);
   const [filteredResults, setFilteredResults] = useState<ExamResult[]>([]);
   const [currentResult, setCurrentResult] = useState<ExamResult | null>(null);
