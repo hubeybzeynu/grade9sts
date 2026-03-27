@@ -290,6 +290,68 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
         </div>
       </motion.div>
 
+      {/* Password Modal */}
+      <AnimatePresence>
+        {showPasswordPrompt && pendingResult && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => { setShowPasswordPrompt(false); setPendingResult(null); setError(''); }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass-card p-8 max-w-md w-full text-center"
+            >
+              <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center mx-auto mb-4`}>
+                <Icon className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Password Required</h3>
+              <p className="text-sm text-muted-foreground mb-1">
+                Student: <span className="font-mono text-foreground">{pendingResult.student_id}</span>
+                {pendingResult.student_name && ` — ${pendingResult.student_name}`}
+              </p>
+              <p className="text-sm text-muted-foreground mb-4">Enter your password to view the result</p>
+              <input
+                type="password"
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                onKeyDown={(e) => e.key === 'Enter' && handlePasswordSubmit()}
+                className="input-glass mb-3 text-center"
+              />
+              {error && (
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-destructive text-sm mb-3">
+                  {error}
+                </motion.p>
+              )}
+              <div className="flex gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handlePasswordSubmit}
+                  className="btn-gradient flex-1"
+                >
+                  Unlock Result
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => { setShowPasswordPrompt(false); setPendingResult(null); setError(''); }}
+                  className="flex-1 px-6 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 font-semibold transition-all"
+                >
+                  Cancel
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Result Modal */}
       <AnimatePresence>
         {showResult && currentResult && (
