@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Award, X, Download, ChevronLeft, ChevronRight, BookOpen, FileCheck } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Search, Award, X, Download, ChevronLeft, ChevronRight, BookOpen, FileCheck, Filter } from 'lucide-react';
+import { externalSupabase } from '@/integrations/supabase/externalClient';
 
 interface ExamResult {
   student_id: string;
   result_image_url: string;
   answer_image_url: string | null;
   student_name: string | null;
+  subject: string | null;
+  grade_group: string | null;
 }
 
 interface ExamResultPageProps {
@@ -17,11 +19,16 @@ interface ExamResultPageProps {
 const ExamResultPage = ({ type }: ExamResultPageProps) => {
   const [studentId, setStudentId] = useState('');
   const [results, setResults] = useState<ExamResult[]>([]);
+  const [filteredResults, setFilteredResults] = useState<ExamResult[]>([]);
   const [currentResult, setCurrentResult] = useState<ExamResult | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [gradeGroups, setGradeGroups] = useState<string[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState<string>('all');
+  const [selectedGradeGroup, setSelectedGradeGroup] = useState<string>('all');
 
   const title = type === 'mid' ? 'Mid Exam' : 'Final Exam';
   const gradient = type === 'mid' ? 'from-violet-500 to-purple-600' : 'from-rose-500 to-red-600';
@@ -31,18 +38,38 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
   useEffect(() => {
     const fetchResults = async () => {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await externalSupabase
         .from(tableName)
-        .select('student_id, result_image_url, answer_image_url, student_name')
+        .select('student_id, result_image_url, answer_image_url, student_name, subject, grade_group')
         .order('student_id');
       
-      if (data) setResults(data);
+      if (data) {
+        setResults(data);
+        setFilteredResults(data);
+        // Extract unique subjects and grade groups
+        const uniqueSubjects = [...new Set(data.map(r => r.subject).filter(Boolean))] as string[];
+        const uniqueGrades = [...new Set(data.map(r => r.grade_group).filter(Boolean))] as string[];
+        setSubjects(uniqueSubjects);
+        setGradeGroups(uniqueGrades);
+      }
       setLoading(false);
     };
     fetchResults();
   }, [tableName]);
 
-  const studentIds = results.map(r => r.student_id);
+  // Filter results when subject or grade_group changes
+  useEffect(() => {
+    let filtered = results;
+    if (selectedSubject !== 'all') {
+      filtered = filtered.filter(r => r.subject === selectedSubject);
+    }
+    if (selectedGradeGroup !== 'all') {
+      filtered = filtered.filter(r => r.grade_group === selectedGradeGroup);
+    }
+    setFilteredResults(filtered);
+  }, [selectedSubject, selectedGradeGroup, results]);
+
+  const studentIds = filteredResults.map(r => r.student_id);
 
   const handleDownload = async (url: string, filename: string) => {
     try {
@@ -67,24 +94,24 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
       setError('Please enter your student ID');
       return;
     }
-    const found = results.find(r => r.student_id === studentId.trim());
+    const found = filteredResults.find(r => r.student_id === studentId.trim());
     if (found) {
       setCurrentResult(found);
       setShowResult(true);
       setShowAnswer(false);
     } else {
-      setError('Student ID not found. No results available for this ID yet.');
+      setError('Student ID not found. Try adjusting filters or check your ID.');
     }
   };
 
   const navigateResult = (direction: 'prev' | 'next') => {
     if (!currentResult) return;
-    const idx = studentIds.indexOf(currentResult.student_id);
+    const idx = filteredResults.findIndex(r => r.student_id === currentResult.student_id && r.subject === currentResult.subject);
     let newIdx = direction === 'prev' ? idx - 1 : idx + 1;
-    if (newIdx < 0) newIdx = studentIds.length - 1;
-    if (newIdx >= studentIds.length) newIdx = 0;
-    setCurrentResult(results[newIdx]);
-    setStudentId(results[newIdx].student_id);
+    if (newIdx < 0) newIdx = filteredResults.length - 1;
+    if (newIdx >= filteredResults.length) newIdx = 0;
+    setCurrentResult(filteredResults[newIdx]);
+    setStudentId(filteredResults[newIdx].student_id);
     setShowAnswer(false);
   };
 
@@ -136,6 +163,48 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
               </div>
             ) : (
               <>
+                {/* Filters */}
+                {(subjects.length > 0 || gradeGroups.length > 0) && (
+                  <div className="mb-6 space-y-3">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                      <Filter className="w-4 h-4" />
+                      <span>Filter Results</span>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      {subjects.length > 0 && (
+                        <div className="flex-1 min-w-[140px]">
+                          <label className="text-xs text-muted-foreground mb-1 block">Subject</label>
+                          <select
+                            value={selectedSubject}
+                            onChange={(e) => setSelectedSubject(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                          >
+                            <option value="all">All Subjects</option>
+                            {subjects.map(s => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      {gradeGroups.length > 0 && (
+                        <div className="flex-1 min-w-[140px]">
+                          <label className="text-xs text-muted-foreground mb-1 block">Grade Group</label>
+                          <select
+                            value={selectedGradeGroup}
+                            onChange={(e) => setSelectedGradeGroup(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                          >
+                            <option value="all">All Grades</option>
+                            {gradeGroups.map(g => (
+                              <option key={g} value={g}>{g}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="relative mb-4">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <input
@@ -170,7 +239,11 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
 
                 {studentIds.length > 0 && (
                   <div className="mt-6">
-                    <p className="text-sm text-muted-foreground mb-3 text-center">Available IDs:</p>
+                    <p className="text-sm text-muted-foreground mb-3 text-center">
+                      {filteredResults.length} result{filteredResults.length !== 1 ? 's' : ''} found
+                      {selectedSubject !== 'all' && ` for ${selectedSubject}`}
+                      {selectedGradeGroup !== 'all' && ` (Grade ${selectedGradeGroup})`}
+                    </p>
                     <div className="flex flex-wrap gap-2 justify-center">
                       {studentIds.slice(0, 6).map((id) => (
                         <motion.button
@@ -202,7 +275,6 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
             onClick={() => { setShowResult(false); setShowAnswer(false); }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
           >
-            {/* Navigation arrows */}
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -237,21 +309,33 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
               </motion.button>
 
               <div className="glass-card p-4 overflow-hidden">
-                <div className="text-center mb-2">
-                  <span className="text-sm text-muted-foreground font-mono">ID: {currentResult.student_id}</span>
-                  {currentResult.student_name && (
-                    <>
-                      <span className="mx-2 text-muted-foreground">•</span>
-                      <span className="text-sm text-muted-foreground">{currentResult.student_name}</span>
-                    </>
-                  )}
-                  <span className="mx-2 text-muted-foreground">•</span>
-                  <span className="text-sm text-muted-foreground">
-                    {studentIds.indexOf(currentResult.student_id) + 1} of {studentIds.length}
-                  </span>
+                <div className="text-center mb-2 space-y-1">
+                  <div>
+                    <span className="text-sm text-muted-foreground font-mono">ID: {currentResult.student_id}</span>
+                    {currentResult.student_name && (
+                      <>
+                        <span className="mx-2 text-muted-foreground">•</span>
+                        <span className="text-sm text-muted-foreground">{currentResult.student_name}</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                    {currentResult.subject && (
+                      <span className="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-xs font-medium">
+                        {currentResult.subject}
+                      </span>
+                    )}
+                    {currentResult.grade_group && (
+                      <span className="px-2 py-0.5 rounded-full bg-accent/20 text-accent-foreground text-xs font-medium">
+                        Grade {currentResult.grade_group}
+                      </span>
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {filteredResults.findIndex(r => r.student_id === currentResult.student_id && r.subject === currentResult.subject) + 1} of {filteredResults.length}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Result Image */}
                 <img
                   src={showAnswer && currentResult.answer_image_url ? currentResult.answer_image_url : currentResult.result_image_url}
                   alt={showAnswer ? 'Answer Key' : `${title} Result`}
@@ -260,7 +344,7 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
 
                 <div className="mt-4 flex gap-3 flex-wrap">
                   <motion.button
-                    onClick={() => handleDownload(currentResult.result_image_url, `${type}_result_${currentResult.student_id}.jpg`)}
+                    onClick={() => handleDownload(currentResult.result_image_url, `${type}_result_${currentResult.student_id}_${currentResult.subject || ''}.jpg`)}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="btn-gradient flex-1 flex items-center justify-center gap-2"
