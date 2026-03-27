@@ -10,6 +10,7 @@ interface ExamResult {
   student_name: string | null;
   subject: string | null;
   grade_group: string | null;
+  student_password: string | null;
 }
 
 interface ExamResultPageProps {
