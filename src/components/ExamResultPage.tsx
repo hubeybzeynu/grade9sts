@@ -100,11 +100,32 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
     }
     const found = filteredResults.find(r => r.student_id === studentId.trim());
     if (found) {
-      setCurrentResult(found);
-      setShowResult(true);
-      setShowAnswer(false);
+      if (found.student_password) {
+        setPendingResult(found);
+        setShowPasswordPrompt(true);
+        setPassword('');
+      } else {
+        setCurrentResult(found);
+        setShowResult(true);
+        setShowAnswer(false);
+      }
     } else {
       setError('Student ID not found. Try adjusting filters or check your ID.');
+    }
+  };
+
+  const handlePasswordSubmit = () => {
+    if (!pendingResult) return;
+    if (password === pendingResult.student_password) {
+      setCurrentResult(pendingResult);
+      setShowResult(true);
+      setShowAnswer(false);
+      setShowPasswordPrompt(false);
+      setPendingResult(null);
+      setPassword('');
+      setError('');
+    } else {
+      setError('Incorrect password. Please try again.');
     }
   };
 
