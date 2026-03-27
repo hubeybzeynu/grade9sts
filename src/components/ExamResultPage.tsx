@@ -10,6 +10,7 @@ interface ExamResult {
   student_name: string | null;
   subject: string | null;
   grade_group: string | null;
+  student_password: string | null;
 }
 
 interface ExamResultPageProps {
@@ -18,6 +19,9 @@ interface ExamResultPageProps {
 
 const ExamResultPage = ({ type }: ExamResultPageProps) => {
   const [studentId, setStudentId] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [pendingResult, setPendingResult] = useState<ExamResult | null>(null);
   const [results, setResults] = useState<ExamResult[]>([]);
   const [filteredResults, setFilteredResults] = useState<ExamResult[]>([]);
   const [currentResult, setCurrentResult] = useState<ExamResult | null>(null);
@@ -40,7 +44,7 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
       setLoading(true);
       const { data, error } = await externalSupabase
         .from(tableName)
-        .select('student_id, result_image_url, answer_image_url, student_name, subject, grade_group')
+        .select('student_id, result_image_url, answer_image_url, student_name, subject, grade_group, student_password')
         .order('student_id');
       
       if (data) {
@@ -96,11 +100,32 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
     }
     const found = filteredResults.find(r => r.student_id === studentId.trim());
     if (found) {
-      setCurrentResult(found);
-      setShowResult(true);
-      setShowAnswer(false);
+      if (found.student_password) {
+        setPendingResult(found);
+        setShowPasswordPrompt(true);
+        setPassword('');
+      } else {
+        setCurrentResult(found);
+        setShowResult(true);
+        setShowAnswer(false);
+      }
     } else {
       setError('Student ID not found. Try adjusting filters or check your ID.');
+    }
+  };
+
+  const handlePasswordSubmit = () => {
+    if (!pendingResult) return;
+    if (password === pendingResult.student_password) {
+      setCurrentResult(pendingResult);
+      setShowResult(true);
+      setShowAnswer(false);
+      setShowPasswordPrompt(false);
+      setPendingResult(null);
+      setPassword('');
+      setError('');
+    } else {
+      setError('Incorrect password. Please try again.');
     }
   };
 
@@ -264,6 +289,68 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
           </motion.div>
         </div>
       </motion.div>
+
+      {/* Password Modal */}
+      <AnimatePresence>
+        {showPasswordPrompt && pendingResult && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => { setShowPasswordPrompt(false); setPendingResult(null); setError(''); }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass-card p-8 max-w-md w-full text-center"
+            >
+              <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center mx-auto mb-4`}>
+                <Icon className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Password Required</h3>
+              <p className="text-sm text-muted-foreground mb-1">
+                Student: <span className="font-mono text-foreground">{pendingResult.student_id}</span>
+                {pendingResult.student_name && ` — ${pendingResult.student_name}`}
+              </p>
+              <p className="text-sm text-muted-foreground mb-4">Enter your password to view the result</p>
+              <input
+                type="password"
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                onKeyDown={(e) => e.key === 'Enter' && handlePasswordSubmit()}
+                className="input-glass mb-3 text-center"
+              />
+              {error && (
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-destructive text-sm mb-3">
+                  {error}
+                </motion.p>
+              )}
+              <div className="flex gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handlePasswordSubmit}
+                  className="btn-gradient flex-1"
+                >
+                  Unlock Result
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => { setShowPasswordPrompt(false); setPendingResult(null); setError(''); }}
+                  className="flex-1 px-6 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 font-semibold transition-all"
+                >
+                  Cancel
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Result Modal */}
       <AnimatePresence>
