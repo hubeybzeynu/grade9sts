@@ -317,7 +317,7 @@ const ResultsPage = () => {
                 />
                 <div className="mt-4 flex gap-3">
                   <motion.button
-                    onClick={() => handleDownload(resultImages[studentId], `result_${studentId}.jpg`)}
+                    onClick={() => handleDownload(downloadLinks[studentId] || resultImages[studentId], `result_${studentId}.jpg`)}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="btn-gradient flex-1 flex items-center justify-center gap-2"
