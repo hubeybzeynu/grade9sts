@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Award, X, Download, ChevronLeft, ChevronRight, BookOpen, FileCheck, Filter } from 'lucide-react';
+import { Search, Award, X, Download, ChevronLeft, ChevronRight, BookOpen, FileCheck, Filter, Lock } from 'lucide-react';
 import { externalSupabase } from '@/integrations/supabase/externalClient';
 
 interface ExamResult {
@@ -33,33 +33,62 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
   const [gradeGroups, setGradeGroups] = useState<string[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedGradeGroup, setSelectedGradeGroup] = useState<string>('all');
+  // Track which results the user has unlocked (by "student_id|subject" key)
+  const [unlockedKeys, setUnlockedKeys] = useState<Set<string>>(new Set());
+  // Inline password state for arrow navigation
+  const [navLocked, setNavLocked] = useState(false);
+  const [navPassword, setNavPassword] = useState('');
+  const [navPasswordError, setNavPasswordError] = useState('');
 
   const title = type === 'mid' ? 'Mid Exam' : 'Final Exam';
   const gradient = type === 'mid' ? 'from-violet-500 to-purple-600' : 'from-rose-500 to-red-600';
   const Icon = type === 'mid' ? BookOpen : FileCheck;
   const tableName = type === 'mid' ? 'mid_results' : 'final_results';
 
+  const getResultKey = (r: ExamResult) => `${r.student_id}|${r.subject || ''}`;
+
+  const processData = useCallback((data: ExamResult[]) => {
+    setResults(data);
+    const uniqueSubjects = [...new Set(data.map(r => r.subject).filter(Boolean))] as string[];
+    const uniqueGrades = [...new Set(data.map(r => r.grade_group).filter(Boolean))] as string[];
+    setSubjects(uniqueSubjects);
+    setGradeGroups(uniqueGrades);
+  }, []);
+
   useEffect(() => {
     const fetchResults = async () => {
       setLoading(true);
-      const { data, error } = await externalSupabase
+      const { data } = await externalSupabase
         .from(tableName)
         .select('student_id, result_image_url, answer_image_url, student_name, subject, grade_group, student_password')
         .order('student_id');
       
-      if (data) {
-        setResults(data);
-        setFilteredResults(data);
-        // Extract unique subjects and grade groups
-        const uniqueSubjects = [...new Set(data.map(r => r.subject).filter(Boolean))] as string[];
-        const uniqueGrades = [...new Set(data.map(r => r.grade_group).filter(Boolean))] as string[];
-        setSubjects(uniqueSubjects);
-        setGradeGroups(uniqueGrades);
-      }
+      if (data) processData(data);
       setLoading(false);
     };
     fetchResults();
-  }, [tableName]);
+
+    // Realtime subscription for live updates
+    const channel = externalSupabase
+      .channel(`${tableName}_realtime`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: tableName },
+        async () => {
+          // Re-fetch all results on any change
+          const { data } = await externalSupabase
+            .from(tableName)
+            .select('student_id, result_image_url, answer_image_url, student_name, subject, grade_group, student_password')
+            .order('student_id');
+          if (data) processData(data);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      externalSupabase.removeChannel(channel);
+    };
+  }, [tableName, processData]);
 
   // Filter results when subject or grade_group changes
   useEffect(() => {
@@ -100,7 +129,8 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
     }
     const found = filteredResults.find(r => r.student_id === studentId.trim());
     if (found) {
-      if (found.student_password) {
+      const key = getResultKey(found);
+      if (found.student_password && !unlockedKeys.has(key)) {
         setPendingResult(found);
         setShowPasswordPrompt(true);
         setPassword('');
@@ -108,6 +138,7 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
         setCurrentResult(found);
         setShowResult(true);
         setShowAnswer(false);
+        setNavLocked(false);
       }
     } else {
       setError('Student ID not found. Try adjusting filters or check your ID.');
@@ -117,6 +148,8 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
   const handlePasswordSubmit = () => {
     if (!pendingResult) return;
     if (password === pendingResult.student_password) {
+      const key = getResultKey(pendingResult);
+      setUnlockedKeys(prev => new Set(prev).add(key));
       setCurrentResult(pendingResult);
       setShowResult(true);
       setShowAnswer(false);
@@ -124,8 +157,22 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
       setPendingResult(null);
       setPassword('');
       setError('');
+      setNavLocked(false);
     } else {
       setError('Incorrect password. Please try again.');
+    }
+  };
+
+  const handleNavPasswordSubmit = () => {
+    if (!currentResult) return;
+    if (navPassword === currentResult.student_password) {
+      const key = getResultKey(currentResult);
+      setUnlockedKeys(prev => new Set(prev).add(key));
+      setNavLocked(false);
+      setNavPassword('');
+      setNavPasswordError('');
+    } else {
+      setNavPasswordError('Incorrect password');
     }
   };
 
@@ -135,9 +182,22 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
     let newIdx = direction === 'prev' ? idx - 1 : idx + 1;
     if (newIdx < 0) newIdx = filteredResults.length - 1;
     if (newIdx >= filteredResults.length) newIdx = 0;
-    setCurrentResult(filteredResults[newIdx]);
-    setStudentId(filteredResults[newIdx].student_id);
+    
+    const nextResult = filteredResults[newIdx];
+    const key = getResultKey(nextResult);
+    
+    setCurrentResult(nextResult);
+    setStudentId(nextResult.student_id);
     setShowAnswer(false);
+    
+    // Check if this result is password-protected and not yet unlocked
+    if (nextResult.student_password && !unlockedKeys.has(key)) {
+      setNavLocked(true);
+      setNavPassword('');
+      setNavPasswordError('');
+    } else {
+      setNavLocked(false);
+    }
   };
 
   const containerVariants = {
@@ -242,7 +302,7 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
                   />
                 </div>
 
-                {error && (
+                {error && !showPasswordPrompt && (
                   <motion.p
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -290,7 +350,7 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
         </div>
       </motion.div>
 
-      {/* Password Modal */}
+      {/* Password Modal (only for initial search, not arrow nav) */}
       <AnimatePresence>
         {showPasswordPrompt && pendingResult && (
           <motion.div
@@ -308,7 +368,7 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
               className="glass-card p-8 max-w-md w-full text-center"
             >
               <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center mx-auto mb-4`}>
-                <Icon className="w-8 h-8 text-white" />
+                <Lock className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-xl font-bold mb-2">Password Required</h3>
               <p className="text-sm text-muted-foreground mb-1">
@@ -359,7 +419,7 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => { setShowResult(false); setShowAnswer(false); }}
+            onClick={() => { setShowResult(false); setShowAnswer(false); setNavLocked(false); }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
           >
             <motion.button
@@ -389,7 +449,7 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => { setShowResult(false); setShowAnswer(false); }}
+                onClick={() => { setShowResult(false); setShowAnswer(false); setNavLocked(false); }}
                 className="absolute -top-12 right-0 p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
               >
                 <X className="w-6 h-6" />
@@ -399,7 +459,7 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
                 <div className="text-center mb-2 space-y-1">
                   <div>
                     <span className="text-sm text-muted-foreground font-mono">ID: {currentResult.student_id}</span>
-                    {currentResult.student_name && (
+                    {currentResult.student_name && !navLocked && (
                       <>
                         <span className="mx-2 text-muted-foreground">•</span>
                         <span className="text-sm text-muted-foreground">{currentResult.student_name}</span>
@@ -423,39 +483,81 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
                   </div>
                 </div>
 
-                <img
-                  src={showAnswer && currentResult.answer_image_url ? currentResult.answer_image_url : currentResult.result_image_url}
-                  alt={showAnswer ? 'Answer Key' : `${title} Result`}
-                  className="w-full rounded-xl"
-                />
-
-                <div className="mt-4 flex gap-3 flex-wrap">
-                  <motion.button
-                    onClick={() => handleDownload(currentResult.result_image_url, `${type}_result_${currentResult.student_id}_${currentResult.subject || ''}.jpg`)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="btn-gradient flex-1 flex items-center justify-center gap-2"
+                {/* If locked via navigation, show inline password instead of image */}
+                {navLocked ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex flex-col items-center justify-center py-16 px-6"
                   >
-                    <Download className="w-5 h-5" />
-                    Download
-                  </motion.button>
-
-                  {currentResult.answer_image_url && (
+                    <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center mb-6`}>
+                      <Lock className="w-10 h-10 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">Result Locked</h3>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      Enter password for student <span className="font-mono text-foreground">{currentResult.student_id}</span>
+                    </p>
+                    <input
+                      type="password"
+                      placeholder="Enter password"
+                      value={navPassword}
+                      onChange={(e) => { setNavPassword(e.target.value); setNavPasswordError(''); }}
+                      onKeyDown={(e) => e.key === 'Enter' && handleNavPasswordSubmit()}
+                      className="input-glass mb-3 text-center max-w-xs w-full"
+                      autoFocus
+                    />
+                    {navPasswordError && (
+                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-destructive text-sm mb-3">
+                        {navPasswordError}
+                      </motion.p>
+                    )}
                     <motion.button
-                      onClick={() => setShowAnswer(!showAnswer)}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
-                        showAnswer
-                          ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400'
-                          : 'bg-white/5 border border-white/10 hover:bg-white/10'
-                      }`}
+                      onClick={handleNavPasswordSubmit}
+                      className="btn-gradient px-8 py-3 flex items-center gap-2"
                     >
-                      <Award className="w-5 h-5" />
-                      {showAnswer ? 'Show Result' : 'Show Answer'}
+                      <Lock className="w-4 h-4" />
+                      Unlock
                     </motion.button>
-                  )}
-                </div>
+                  </motion.div>
+                ) : (
+                  <>
+                    <img
+                      src={showAnswer && currentResult.answer_image_url ? currentResult.answer_image_url : currentResult.result_image_url}
+                      alt={showAnswer ? 'Answer Key' : `${title} Result`}
+                      className="w-full rounded-xl"
+                    />
+
+                    <div className="mt-4 flex gap-3 flex-wrap">
+                      <motion.button
+                        onClick={() => handleDownload(currentResult.result_image_url, `${type}_result_${currentResult.student_id}_${currentResult.subject || ''}.jpg`)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="btn-gradient flex-1 flex items-center justify-center gap-2"
+                      >
+                        <Download className="w-5 h-5" />
+                        Download
+                      </motion.button>
+
+                      {currentResult.answer_image_url && (
+                        <motion.button
+                          onClick={() => setShowAnswer(!showAnswer)}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
+                            showAnswer
+                              ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400'
+                              : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                          }`}
+                        >
+                          <Award className="w-5 h-5" />
+                          {showAnswer ? 'Show Result' : 'Show Answer'}
+                        </motion.button>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </motion.div>
           </motion.div>
