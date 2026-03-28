@@ -1,19 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, User, Download, Filter, Send, Instagram, ClipboardList, FileCheck } from 'lucide-react';
-
-interface Student {
-  id: number;
-  name: string;
-  englishName: string;
-  age: number;
-  gender: 'Male' | 'Female';
-  section: string;
-  telegram?: string;
-  instagram?: string;
-  imageUrl: string;
-  downloadUrl: string;
-}
+import { students as allStudents, Student } from '@/data/students';
 
 interface StudentsPageProps {
   onNavigate?: (page: string) => void;
@@ -24,17 +12,7 @@ const StudentsPage = ({ onNavigate }: StudentsPageProps) => {
   const [genderFilter, setGenderFilter] = useState<'all' | 'Male' | 'Female'>('all');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
-  // Sample student data (in real app, this would come from API)
-  const students: Student[] = [
-    { id: 1, name: 'አበበ ከበደ', englishName: 'Abebe Kebede', age: 15, gender: 'Male', section: '9A', telegram: 'https://t.me/example1', instagram: 'https://instagram.com/example1', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
-    { id: 2, name: 'ሰላም ተስፋዬ', englishName: 'Selam Tesfaye', age: 14, gender: 'Female', section: '9A', telegram: 'https://t.me/example2', instagram: 'https://instagram.com/example2', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
-    { id: 3, name: 'ዳዊት መኮንን', englishName: 'Dawit Mekonnen', age: 15, gender: 'Male', section: '9B', telegram: 'https://t.me/example3', instagram: 'https://instagram.com/example3', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
-    { id: 4, name: 'ሄለን ገብረ', englishName: 'Helen Gebre', age: 14, gender: 'Female', section: '9B', telegram: 'https://t.me/example4', instagram: 'https://instagram.com/example4', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
-    { id: 5, name: 'ሁበይብ ዘይኑ አባተ', englishName: 'Hubeyb Zeynu Abate', age: 15, gender: 'Male', section: '9B', telegram: 'https://t.me/HUBPROMAN', instagram: 'https://www.instagram.com/hubproman', imageUrl: 'https://i.postimg.cc/PJmN2qcr/photo-2025-06-16-07-25-19.jpg', downloadUrl: 'https://i.postimg.cc/dsfdQkjd/photo-2025-06-16-07-25-19.jpg?dl=1' },
-    { id: 6, name: 'ማርያም በላቸው', englishName: 'Maryam Belachew', age: 14, gender: 'Female', section: '9C', telegram: 'https://t.me/example6', instagram: 'https://instagram.com/example6', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
-    { id: 7, name: 'ሳሙኤል ታደሰ', englishName: 'Samuel Tadese', age: 15, gender: 'Male', section: '9D', telegram: 'https://t.me/example7', instagram: 'https://instagram.com/example7', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
-    { id: 8, name: 'ብርቱካን ወርቁ', englishName: 'Birtukan Worku', age: 14, gender: 'Female', section: '9D', telegram: 'https://t.me/example8', instagram: 'https://instagram.com/example8', imageUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg', downloadUrl: 'https://i.postimg.cc/sfKMzbMn/photo-2025-06-12-19-39-13.jpg' },
-  ];
+  const students = allStudents;
 
   // Download function for student profile
   const handleDownload = async (url: string, filename: string) => {
