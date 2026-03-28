@@ -1,19 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, User, Download, Filter, Send, Instagram, ClipboardList, FileCheck } from 'lucide-react';
-
-interface Student {
-  id: number;
-  name: string;
-  englishName: string;
-  age: number;
-  gender: 'Male' | 'Female';
-  section: string;
-  telegram?: string;
-  instagram?: string;
-  imageUrl: string;
-  downloadUrl: string;
-}
+import { students as allStudents, Student } from '@/data/students';
 
 interface StudentsPageProps {
   onNavigate?: (page: string) => void;
