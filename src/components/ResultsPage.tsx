@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Award, ImageIcon, X, HelpCircle, Download, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { resultImages, downloadLinks, nameToIdMap } from '@/data/ministryResults';
+import { students } from '@/data/students';
 
 const ResultsPage = () => {
   const [studentId, setStudentId] = useState('');
