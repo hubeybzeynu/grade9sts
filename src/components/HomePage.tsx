@@ -177,7 +177,7 @@ const HomePage = ({ onNavigate }: HomePageProps) => {
           variants={itemVariants}
           className="mt-12 text-center text-muted-foreground text-sm"
         >
-          <p>ቅዱስ ቴሬዛ ት/ቤት - እናንተ ራሳችሁን መሪዎች ናችሁ!</p>
+          <p>ቅዱስ ቴሬዛ ት/ቤት - ጥራት ያለው ለሁሉም</p>
           <p className="mt-2">© 2025 St. Theresa School - Grade 9</p>
         </motion.footer>
       </div>
