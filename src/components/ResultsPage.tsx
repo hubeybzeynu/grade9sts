@@ -576,6 +576,7 @@ const ResultsPage = () => {
                     setShowForgetId(false);
                     setForgetNameInput('');
                     setForgetFeedback(null);
+                    setForgetMatches([]);
                   }}
                   className="btn-ghost"
                 >
