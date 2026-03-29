@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Users, Award, ArrowRight, Sparkles, CheckCircle } from 'lucide-react';
+import { BookOpen, Users, Award, ArrowRight, Sparkles, CheckCircle, ClipboardList, FileCheck } from 'lucide-react';
 
 interface WelcomeOnboardingProps {
   onComplete: () => void;
@@ -31,8 +31,20 @@ const WelcomeOnboarding = ({ onComplete }: WelcomeOnboardingProps) => {
     {
       icon: Award,
       title: 'Ministry Results',
-      description: 'View your exam results by entering your student ID. Forgot your ID? Use your Amharic name to find it!',
+      description: 'View your exam results by entering your student ID. Forgot your ID? Use your Amharic or English name to find it!',
       color: 'from-amber-500 to-orange-600',
+    },
+    {
+      icon: ClipboardList,
+      title: 'Mid Exam Results',
+      description: 'Check your mid-term results by entering your student ID. Results are verified by your teachers and updated in real-time.',
+      color: 'from-violet-500 to-indigo-600',
+    },
+    {
+      icon: FileCheck,
+      title: 'Final Exam Results',
+      description: 'View your final exam results securely. Password-protected results ensure only you can see your grades.',
+      color: 'from-rose-500 to-red-600',
     },
   ];
 

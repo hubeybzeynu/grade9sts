@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Award, ImageIcon, X, HelpCircle, Download, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { resultImages, downloadLinks, nameToIdMap } from '@/data/ministryResults';
+import { students } from '@/data/students';
 
 const ResultsPage = () => {
   const [studentId, setStudentId] = useState('');
@@ -11,6 +12,7 @@ const ResultsPage = () => {
   const [showForgetId, setShowForgetId] = useState(false);
   const [forgetNameInput, setForgetNameInput] = useState('');
   const [forgetFeedback, setForgetFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [forgetMatches, setForgetMatches] = useState<{ name: string; id: string; imageUrl?: string }[]>([]);
   const [error, setError] = useState('');
 
   const studentIds = Object.keys(resultImages);
@@ -46,8 +48,19 @@ const ResultsPage = () => {
     }
   };
 
+  // Find student photo from directory by matching name
+  const findStudentPhoto = (name: string): string | undefined => {
+    const normalized = name.normalize().toLowerCase();
+    const found = students.find(s => 
+      s.name.normalize().toLowerCase() === normalized || 
+      s.englishName.normalize().toLowerCase() === normalized
+    );
+    return found?.imageUrl;
+  };
+
   const handleForgetSubmit = () => {
     const nameInput = forgetNameInput.trim();
+    setForgetMatches([]);
     
     if (!nameInput) {
       setForgetFeedback({ message: 'Please type your name', type: 'error' });
@@ -66,6 +79,7 @@ const ResultsPage = () => {
           setShowForgetId(false);
           setForgetNameInput('');
           setForgetFeedback(null);
+          setForgetMatches([]);
           setStudentId(foundId);
           setShowResult(true);
         }, 500);
@@ -73,39 +87,94 @@ const ResultsPage = () => {
       }
     }
 
-    // Look for partial matches
-    const partialMatches: { name: string; id: string }[] = [];
-    for (const storedName in nameToIdMap) {
-      const normalizedStoredName = storedName.normalize().toLowerCase();
-      if (normalizedStoredName.includes(normalizedInput)) {
-        partialMatches.push({ name: storedName, id: nameToIdMap[storedName] });
+    // Also search by English name in students array
+    const englishExact = students.find(s => s.englishName.normalize().toLowerCase() === normalizedInput);
+    if (englishExact) {
+      // Find the ministry ID from nameToIdMap using Amharic name
+      const amharicName = englishExact.name;
+      if (nameToIdMap[amharicName]) {
+        const foundId = nameToIdMap[amharicName];
+        setForgetFeedback({ message: `Found: ${englishExact.englishName} — opening...`, type: 'success' });
+        setTimeout(() => {
+          setShowForgetId(false);
+          setForgetNameInput('');
+          setForgetFeedback(null);
+          setForgetMatches([]);
+          setStudentId(foundId);
+          setShowResult(true);
+        }, 500);
+        return;
       }
     }
 
+    // Look for partial matches in both Amharic (nameToIdMap) and English (students)
+    const matchMap = new Map<string, { name: string; id: string; imageUrl?: string }>();
+    
+    for (const storedName in nameToIdMap) {
+      const normalizedStoredName = storedName.normalize().toLowerCase();
+      if (normalizedStoredName.includes(normalizedInput)) {
+        matchMap.set(nameToIdMap[storedName], { 
+          name: storedName, 
+          id: nameToIdMap[storedName], 
+          imageUrl: findStudentPhoto(storedName) 
+        });
+      }
+    }
+
+    // Also match English names from students
+    for (const s of students) {
+      if (s.englishName.normalize().toLowerCase().includes(normalizedInput)) {
+        const amharicName = s.name;
+        if (nameToIdMap[amharicName] && !matchMap.has(nameToIdMap[amharicName])) {
+          matchMap.set(nameToIdMap[amharicName], {
+            name: `${s.englishName} (${amharicName})`,
+            id: nameToIdMap[amharicName],
+            imageUrl: s.imageUrl,
+          });
+        }
+      }
+    }
+
+    const partialMatches = Array.from(matchMap.values());
+
     if (partialMatches.length === 1) {
       const found = partialMatches[0];
-      setForgetFeedback({ message: `Did you mean "${found.name}"? Opening...`, type: 'success' });
+      setForgetFeedback({ message: `Found: "${found.name}" — opening...`, type: 'success' });
       setTimeout(() => {
         setShowForgetId(false);
         setForgetNameInput('');
         setForgetFeedback(null);
+        setForgetMatches([]);
         setStudentId(found.id);
         setShowResult(true);
-      }, 2000);
+      }, 1500);
       return;
     } else if (partialMatches.length > 1) {
-      const suggestions = partialMatches.slice(0, 5).map(match => match.name).join(', ');
+      const limited = partialMatches.slice(0, 3);
+      setForgetMatches(limited);
       setForgetFeedback({ 
-        message: `Multiple matches found: ${suggestions}${partialMatches.length > 5 ? '...' : ''}`, 
+        message: 'Multiple students found. Which one is you?', 
         type: 'error' 
       });
       return;
     }
 
     setForgetFeedback({ 
-      message: 'Not found. Make sure you typed your name correctly in Amharic.', 
+      message: 'Not found. Make sure you typed your name correctly in Amharic or English.', 
       type: 'error' 
     });
+  };
+
+  const handleSelectMatch = (match: { name: string; id: string }) => {
+    setForgetFeedback({ message: `Opening result for "${match.name}"...`, type: 'success' });
+    setTimeout(() => {
+      setShowForgetId(false);
+      setForgetNameInput('');
+      setForgetFeedback(null);
+      setForgetMatches([]);
+      setStudentId(match.id);
+      setShowResult(true);
+    }, 500);
   };
 
   const containerVariants = {
@@ -429,7 +498,7 @@ const ResultsPage = () => {
                 </div>
                 <h3 className="text-xl font-bold gradient-text mb-2">Forgot your ID?</h3>
                 <p className="text-muted-foreground text-sm">
-                  Type your name in Amharic as saved in the ministry result.
+                  Type your name in Amharic or English to find your result.
                 </p>
               </div>
 
@@ -458,6 +527,39 @@ const ResultsPage = () => {
                 )}
               </AnimatePresence>
 
+              {/* Photo selection when multiple matches */}
+              {forgetMatches.length > 0 && (
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  {forgetMatches.map((match) => (
+                    <motion.div
+                      key={match.id}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleSelectMatch(match)}
+                      className="cursor-pointer group rounded-xl overflow-hidden border-2 border-white/10 hover:border-primary/50 transition-all"
+                    >
+                      {match.imageUrl ? (
+                        <img
+                          src={match.imageUrl}
+                          alt={match.name}
+                          className="w-full aspect-square object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full aspect-square bg-white/5 flex items-center justify-center">
+                          <User className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="p-2 text-center bg-white/5">
+                        <p className="text-xs font-medium truncate">{match.name.split('(')[0].trim()}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">ID: {match.id}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -474,6 +576,7 @@ const ResultsPage = () => {
                     setShowForgetId(false);
                     setForgetNameInput('');
                     setForgetFeedback(null);
+                    setForgetMatches([]);
                   }}
                   className="btn-ghost"
                 >
