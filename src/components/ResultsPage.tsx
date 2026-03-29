@@ -12,6 +12,7 @@ const ResultsPage = () => {
   const [showForgetId, setShowForgetId] = useState(false);
   const [forgetNameInput, setForgetNameInput] = useState('');
   const [forgetFeedback, setForgetFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [forgetMatches, setForgetMatches] = useState<{ name: string; id: string; imageUrl?: string }[]>([]);
   const [error, setError] = useState('');
 
   const studentIds = Object.keys(resultImages);
