@@ -527,6 +527,39 @@ const ResultsPage = () => {
                 )}
               </AnimatePresence>
 
+              {/* Photo selection when multiple matches */}
+              {forgetMatches.length > 0 && (
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  {forgetMatches.map((match) => (
+                    <motion.div
+                      key={match.id}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleSelectMatch(match)}
+                      className="cursor-pointer group rounded-xl overflow-hidden border-2 border-white/10 hover:border-primary/50 transition-all"
+                    >
+                      {match.imageUrl ? (
+                        <img
+                          src={match.imageUrl}
+                          alt={match.name}
+                          className="w-full aspect-square object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full aspect-square bg-white/5 flex items-center justify-center">
+                          <User className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="p-2 text-center bg-white/5">
+                        <p className="text-xs font-medium truncate">{match.name.split('(')[0].trim()}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">ID: {match.id}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
