@@ -498,7 +498,7 @@ const ResultsPage = () => {
                 </div>
                 <h3 className="text-xl font-bold gradient-text mb-2">Forgot your ID?</h3>
                 <p className="text-muted-foreground text-sm">
-                  Type your name in Amharic as saved in the ministry result.
+                  Type your name in Amharic or English to find your result.
                 </p>
               </div>
 
