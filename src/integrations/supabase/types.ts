@@ -149,6 +149,45 @@ export type Database = {
         }
         Relationships: []
       }
+      students: {
+        Row: {
+          age: number | null
+          download_url: string | null
+          english_name: string
+          gender: string | null
+          id: number
+          image_url: string | null
+          instagram: string | null
+          name: string
+          section: string | null
+          telegram: string | null
+        }
+        Insert: {
+          age?: number | null
+          download_url?: string | null
+          english_name: string
+          gender?: string | null
+          id: number
+          image_url?: string | null
+          instagram?: string | null
+          name: string
+          section?: string | null
+          telegram?: string | null
+        }
+        Update: {
+          age?: number | null
+          download_url?: string | null
+          english_name?: string
+          gender?: string | null
+          id?: number
+          image_url?: string | null
+          instagram?: string | null
+          name?: string
+          section?: string | null
+          telegram?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
