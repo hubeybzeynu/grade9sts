@@ -74,6 +74,81 @@ export type Database = {
         }
         Relationships: []
       }
+      report_cards: {
+        Row: {
+          age: number | null
+          conduct: Json
+          created_at: string
+          days_absent: Json | null
+          days_present: Json | null
+          detained_in_grade: string | null
+          grade: string | null
+          house_no: string | null
+          id: string
+          kebele: string | null
+          promoted_to: string | null
+          rank: Json | null
+          remarks: string | null
+          school_year: string | null
+          sex: string | null
+          student_id: string
+          student_name: string | null
+          subjects: Json
+          teacher_name: string | null
+          times_tardy: Json | null
+          total_academic_days: Json | null
+          updated_at: string
+        }
+        Insert: {
+          age?: number | null
+          conduct?: Json
+          created_at?: string
+          days_absent?: Json | null
+          days_present?: Json | null
+          detained_in_grade?: string | null
+          grade?: string | null
+          house_no?: string | null
+          id?: string
+          kebele?: string | null
+          promoted_to?: string | null
+          rank?: Json | null
+          remarks?: string | null
+          school_year?: string | null
+          sex?: string | null
+          student_id: string
+          student_name?: string | null
+          subjects?: Json
+          teacher_name?: string | null
+          times_tardy?: Json | null
+          total_academic_days?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          age?: number | null
+          conduct?: Json
+          created_at?: string
+          days_absent?: Json | null
+          days_present?: Json | null
+          detained_in_grade?: string | null
+          grade?: string | null
+          house_no?: string | null
+          id?: string
+          kebele?: string | null
+          promoted_to?: string | null
+          rank?: Json | null
+          remarks?: string | null
+          school_year?: string | null
+          sex?: string | null
+          student_id?: string
+          student_name?: string | null
+          subjects?: Json
+          teacher_name?: string | null
+          times_tardy?: Json | null
+          total_academic_days?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
