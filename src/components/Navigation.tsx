@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Home, BookOpen, Users, Award, ChevronLeft, FileCheck, ClipboardList } from 'lucide-react';
+import { Home, BookOpen, Users, Award, ChevronLeft, FileCheck, ClipboardList, FileText } from 'lucide-react';
 
 interface NavigationProps {
   currentPage: string;
@@ -14,6 +14,7 @@ const Navigation = ({ currentPage, onNavigate }: NavigationProps) => {
     { id: 'results', label: 'Results', icon: Award },
     { id: 'mid-results', label: 'Mid', icon: ClipboardList },
     { id: 'final-results', label: 'Final', icon: FileCheck },
+    { id: 'report-card', label: 'Report', icon: FileText },
   ];
 
   return (

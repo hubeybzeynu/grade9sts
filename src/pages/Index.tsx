@@ -7,10 +7,11 @@ import TextbooksPage from '@/components/TextbooksPage';
 import StudentsPage from '@/components/StudentsPage';
 import ResultsPage from '@/components/ResultsPage';
 import ExamResultPage from '@/components/ExamResultPage';
+import ReportCardPage from '@/components/ReportCardPage';
 import ScreenLock from '@/components/ScreenLock';
 import WelcomeOnboarding from '@/components/WelcomeOnboarding';
 
-type PageType = 'home' | 'textbooks' | 'students' | 'results' | 'mid-results' | 'final-results';
+type PageType = 'home' | 'textbooks' | 'students' | 'results' | 'mid-results' | 'final-results' | 'report-card';
 
 const STORAGE_KEY = 'portal_unlocked';
 const ONBOARDING_KEY = 'portal_onboarding_complete';
@@ -57,6 +58,8 @@ const Index = () => {
         return <ExamResultPage type="mid" />;
       case 'final-results':
         return <ExamResultPage type="final" />;
+      case 'report-card':
+        return <ReportCardPage />;
       default:
         return <HomePage onNavigate={handleNavigate} />;
     }
