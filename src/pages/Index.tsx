@@ -58,6 +58,8 @@ const Index = () => {
         return <ExamResultPage type="mid" />;
       case 'final-results':
         return <ExamResultPage type="final" />;
+      case 'report-card':
+        return <ReportCardPage />;
       default:
         return <HomePage onNavigate={handleNavigate} />;
     }
