@@ -323,14 +323,32 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
                 <div className="relative mb-4">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <input
-                    type="text"
-                    placeholder={`Enter your Student ID (e.g., ${studentIds[0] || '219335'})`}
+                    type="number"
+                    placeholder="Enter your student number (e.g., 5)"
                     value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    onChange={(e) => { setStudentId(e.target.value); setVerifiedStudent(null); }}
+                    onKeyDown={(e) => e.key === 'Enter' && (verifiedStudent ? handleSearch() : handleVerify())}
                     className={`input-glass pl-12 ${error ? 'border-destructive focus:ring-destructive/50' : ''}`}
                   />
                 </div>
+
+                {/* Verified student info */}
+                {verifiedStudent && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20"
+                  >
+                    <UserCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+                    {verifiedStudent.image_url && (
+                      <img src={verifiedStudent.image_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{verifiedStudent.english_name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{verifiedStudent.name}</p>
+                    </div>
+                  </motion.div>
+                )}
 
                 {error && !showPasswordPrompt && (
                   <motion.p
@@ -342,15 +360,34 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
                   </motion.p>
                 )}
 
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleSearch}
-                  className="btn-gradient w-full flex items-center justify-center gap-2"
-                >
-                  <Search className="w-5 h-5" />
-                  Search Result
-                </motion.button>
+                <div className="flex gap-3">
+                  {!verifiedStudent ? (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleVerify}
+                      disabled={verifying}
+                      className="btn-gradient w-full flex items-center justify-center gap-2"
+                    >
+                      {verifying ? (
+                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                      ) : (
+                        <UserCheck className="w-5 h-5" />
+                      )}
+                      Verify Student
+                    </motion.button>
+                  ) : (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleSearch}
+                      className="btn-gradient w-full flex items-center justify-center gap-2"
+                    >
+                      <Search className="w-5 h-5" />
+                      View Result
+                    </motion.button>
+                  )}
+                </div>
 
                 {studentIds.length > 0 && (
                   <div className="mt-6">
