@@ -123,14 +123,42 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
     }
   };
 
-  const handleSearch = () => {
+  const handleVerify = async () => {
     setError('');
+    setVerifiedStudent(null);
     if (!studentId.trim()) {
-      setError('Please enter your student ID');
+      setError('Please enter your student number');
       return;
     }
-    const found = filteredResults.find(r => r.student_id === studentId.trim());
-    if (found) {
+    const idNum = parseInt(studentId.trim());
+    if (isNaN(idNum)) {
+      setError('Please enter a valid number');
+      return;
+    }
+    setVerifying(true);
+    const { data } = await supabase
+      .from('students')
+      .select('id, name, english_name, image_url')
+      .eq('id', idNum)
+      .single();
+    setVerifying(false);
+    if (data) {
+      setVerifiedStudent(data);
+    } else {
+      setError('Student not found. Check your number.');
+    }
+  };
+
+  const handleSearch = () => {
+    setError('');
+    if (!verifiedStudent) {
+      setError('Please verify your student number first');
+      return;
+    }
+    // Search by student_id matching the directory ID as string
+    const studentResults = filteredResults.filter(r => r.student_id === String(verifiedStudent.id));
+    if (studentResults.length > 0) {
+      const found = studentResults[0];
       const key = getResultKey(found);
       if (found.student_password && !unlockedKeys.has(key)) {
         setPendingResult(found);
@@ -143,7 +171,7 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
         setNavLocked(false);
       }
     } else {
-      setError('Student ID not found. Try adjusting filters or check your ID.');
+      setError('No results found for this student. Results may not be uploaded yet.');
     }
   };
 
