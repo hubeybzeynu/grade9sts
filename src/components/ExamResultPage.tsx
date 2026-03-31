@@ -34,12 +34,13 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
   const [gradeGroups, setGradeGroups] = useState<string[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedGradeGroup, setSelectedGradeGroup] = useState<string>('all');
-  // Track which results the user has unlocked (by "student_id|subject" key)
   const [unlockedKeys, setUnlockedKeys] = useState<Set<string>>(new Set());
-  // Inline password state for arrow navigation
   const [navLocked, setNavLocked] = useState(false);
   const [navPassword, setNavPassword] = useState('');
   const [navPasswordError, setNavPasswordError] = useState('');
+  // Student verification
+  const [verifiedStudent, setVerifiedStudent] = useState<{ id: number; name: string; english_name: string; image_url: string | null } | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   const title = type === 'mid' ? 'Mid Exam' : 'Final Exam';
   const gradient = type === 'mid' ? 'from-violet-500 to-purple-600' : 'from-rose-500 to-red-600';
