@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Award, X, Download, ChevronLeft, ChevronRight, BookOpen, FileCheck, Filter, Lock } from 'lucide-react';
+import { Search, Award, X, Download, ChevronLeft, ChevronRight, BookOpen, FileCheck, Filter, Lock, UserCheck } from 'lucide-react';
 import { externalSupabase } from '@/integrations/supabase/externalClient';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ExamResult {
   student_id: string;
