@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Award, X, Download, ChevronLeft, ChevronRight, BookOpen, FileCheck, Filter, Lock } from 'lucide-react';
+import { Search, Award, X, Download, ChevronLeft, ChevronRight, BookOpen, FileCheck, Filter, Lock, UserCheck } from 'lucide-react';
 import { externalSupabase } from '@/integrations/supabase/externalClient';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ExamResult {
   student_id: string;
@@ -33,12 +34,13 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
   const [gradeGroups, setGradeGroups] = useState<string[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedGradeGroup, setSelectedGradeGroup] = useState<string>('all');
-  // Track which results the user has unlocked (by "student_id|subject" key)
   const [unlockedKeys, setUnlockedKeys] = useState<Set<string>>(new Set());
-  // Inline password state for arrow navigation
   const [navLocked, setNavLocked] = useState(false);
   const [navPassword, setNavPassword] = useState('');
   const [navPasswordError, setNavPasswordError] = useState('');
+  // Student verification
+  const [verifiedStudent, setVerifiedStudent] = useState<{ id: number; name: string; english_name: string; image_url: string | null } | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   const title = type === 'mid' ? 'Mid Exam' : 'Final Exam';
   const gradient = type === 'mid' ? 'from-violet-500 to-purple-600' : 'from-rose-500 to-red-600';
@@ -121,14 +123,42 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
     }
   };
 
-  const handleSearch = () => {
+  const handleVerify = async () => {
     setError('');
+    setVerifiedStudent(null);
     if (!studentId.trim()) {
-      setError('Please enter your student ID');
+      setError('Please enter your student number');
       return;
     }
-    const found = filteredResults.find(r => r.student_id === studentId.trim());
-    if (found) {
+    const idNum = parseInt(studentId.trim());
+    if (isNaN(idNum)) {
+      setError('Please enter a valid number');
+      return;
+    }
+    setVerifying(true);
+    const { data } = await supabase
+      .from('students')
+      .select('id, name, english_name, image_url')
+      .eq('id', idNum)
+      .single();
+    setVerifying(false);
+    if (data) {
+      setVerifiedStudent(data);
+    } else {
+      setError('Student not found. Check your number.');
+    }
+  };
+
+  const handleSearch = () => {
+    setError('');
+    if (!verifiedStudent) {
+      setError('Please verify your student number first');
+      return;
+    }
+    // Search by student_id matching the directory ID as string
+    const studentResults = filteredResults.filter(r => r.student_id === String(verifiedStudent.id));
+    if (studentResults.length > 0) {
+      const found = studentResults[0];
       const key = getResultKey(found);
       if (found.student_password && !unlockedKeys.has(key)) {
         setPendingResult(found);
@@ -141,7 +171,7 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
         setNavLocked(false);
       }
     } else {
-      setError('Student ID not found. Try adjusting filters or check your ID.');
+      setError('No results found for this student. Results may not be uploaded yet.');
     }
   };
 
@@ -293,14 +323,32 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
                 <div className="relative mb-4">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <input
-                    type="text"
-                    placeholder={`Enter your Student ID (e.g., ${studentIds[0] || '219335'})`}
+                    type="number"
+                    placeholder="Enter your student number (e.g., 5)"
                     value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    onChange={(e) => { setStudentId(e.target.value); setVerifiedStudent(null); }}
+                    onKeyDown={(e) => e.key === 'Enter' && (verifiedStudent ? handleSearch() : handleVerify())}
                     className={`input-glass pl-12 ${error ? 'border-destructive focus:ring-destructive/50' : ''}`}
                   />
                 </div>
+
+                {/* Verified student info */}
+                {verifiedStudent && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20"
+                  >
+                    <UserCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+                    {verifiedStudent.image_url && (
+                      <img src={verifiedStudent.image_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{verifiedStudent.english_name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{verifiedStudent.name}</p>
+                    </div>
+                  </motion.div>
+                )}
 
                 {error && !showPasswordPrompt && (
                   <motion.p
@@ -312,15 +360,34 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
                   </motion.p>
                 )}
 
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleSearch}
-                  className="btn-gradient w-full flex items-center justify-center gap-2"
-                >
-                  <Search className="w-5 h-5" />
-                  Search Result
-                </motion.button>
+                <div className="flex gap-3">
+                  {!verifiedStudent ? (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleVerify}
+                      disabled={verifying}
+                      className="btn-gradient w-full flex items-center justify-center gap-2"
+                    >
+                      {verifying ? (
+                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                      ) : (
+                        <UserCheck className="w-5 h-5" />
+                      )}
+                      Verify Student
+                    </motion.button>
+                  ) : (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleSearch}
+                      className="btn-gradient w-full flex items-center justify-center gap-2"
+                    >
+                      <Search className="w-5 h-5" />
+                      View Result
+                    </motion.button>
+                  )}
+                </div>
 
                 {studentIds.length > 0 && (
                   <div className="mt-6">
