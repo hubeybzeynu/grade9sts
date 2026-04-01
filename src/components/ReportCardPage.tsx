@@ -52,7 +52,7 @@ const ReportCardPage = () => {
 
   // Realtime subscription
   useEffect(() => {
-    const channel = externalSupabase
+    const channel = supabase
       .channel('report-cards-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'report_cards' }, () => {
         if (reportCard) {
@@ -63,11 +63,11 @@ const ReportCardPage = () => {
       .subscribe();
 
     fetchAllCards();
-    return () => { externalSupabase.removeChannel(channel); };
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const fetchAllCards = async () => {
-    const { data } = await externalSupabase
+    const { data } = await supabase
       .from('report_cards')
       .select('*')
       .order('student_name', { ascending: true });
@@ -83,7 +83,7 @@ const ReportCardPage = () => {
     const dirStudent = students.find(s => s.id.toString() === id);
     const searchName = dirStudent?.englishName || dirStudent?.name;
 
-    let query = externalSupabase.from('report_cards').select('*');
+    let query = supabase.from('report_cards').select('*');
     
     if (searchName) {
       query = query.or(`student_id.eq.${id},student_name.ilike.%${searchName}%`);
