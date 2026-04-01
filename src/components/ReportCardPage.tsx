@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Search, Download, ChevronLeft, ChevronRight, Printer } from 'lucide-react';
-import { externalSupabase } from '@/integrations/supabase/externalClient';
+import { supabase } from '@/integrations/supabase/client';
 import { students } from '@/data/students';
 
 const SUBJECTS = [
