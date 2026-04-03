@@ -1,54 +1,35 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, User, Download, Filter, Send, Instagram, ClipboardList, FileCheck } from 'lucide-react';
+import { Search, User, Filter } from 'lucide-react';
 import { students as allStudents, Student } from '@/data/students';
+import StudentDetailModal from './StudentDetailModal';
 
 interface StudentsPageProps {
   onNavigate?: (page: string) => void;
 }
 
+const SECTIONS = ['all', '9A', '9B', '9C'] as const;
+
 const StudentsPage = ({ onNavigate }: StudentsPageProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [genderFilter, setGenderFilter] = useState<'all' | 'Male' | 'Female'>('all');
+  const [sectionFilter, setSectionFilter] = useState<string>('all');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
-  const students = allStudents;
-
-  // Download function for student profile
-  const handleDownload = async (url: string, filename: string) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(downloadUrl);
-    } catch (error) {
-      // Fallback: open in new tab
-      window.open(url, '_blank');
-    }
-  };
-
   const filteredStudents = useMemo(() => {
-    return students.filter((student) => {
+    return allStudents.filter((student) => {
       const matchesSearch =
         student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         student.englishName.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesGender = genderFilter === 'all' || student.gender === genderFilter;
-      return matchesSearch && matchesGender;
+      const matchesSection = sectionFilter === 'all' || student.section === sectionFilter;
+      return matchesSearch && matchesGender && matchesSection;
     });
-  }, [searchQuery, genderFilter, students]);
+  }, [searchQuery, genderFilter, sectionFilter]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.05 },
-    },
+    visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
   };
 
   const itemVariants = {
@@ -69,73 +50,75 @@ const StudentsPage = ({ onNavigate }: StudentsPageProps) => {
             <h1 className="text-4xl font-bold mb-4">
               <span className="gradient-text">Student</span> Directory
             </h1>
-            <p className="text-muted-foreground">
-              Explore student profiles from Grade 9
-            </p>
+            <p className="text-muted-foreground">Explore student profiles from Grade 9</p>
           </motion.div>
 
           {/* Search & Filter Bar */}
-          <motion.div
-            variants={itemVariants}
-            className="glass-card p-4 mb-8 flex flex-wrap gap-4 items-center justify-center"
-          >
-            <div className="relative flex-1 min-w-[250px] max-w-md">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search by name (Amharic or English)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="input-glass pl-12"
-              />
+          <motion.div variants={itemVariants} className="glass-card p-4 mb-8 space-y-3">
+            <div className="flex flex-wrap gap-4 items-center justify-center">
+              <div className="relative flex-1 min-w-[250px] max-w-md">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search by name (Amharic or English)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="input-glass pl-12"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setGenderFilter('all')}
+                  className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                    genderFilter === 'all' ? 'bg-primary text-primary-foreground' : 'bg-white/5 hover:bg-white/10'
+                  }`}
+                >
+                  <Filter className="w-4 h-4 inline mr-2" />All
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setGenderFilter('Male')}
+                  className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                    genderFilter === 'Male' ? 'bg-blue-500 text-white' : 'bg-white/5 hover:bg-white/10'
+                  }`}
+                >Male</motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setGenderFilter('Female')}
+                  className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                    genderFilter === 'Female' ? 'bg-pink-500 text-white' : 'bg-white/5 hover:bg-white/10'
+                  }`}
+                >Female</motion.button>
+              </div>
             </div>
 
-            <div className="flex gap-2">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setGenderFilter('all')}
-                className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                  genderFilter === 'all'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-white/5 hover:bg-white/10'
-                }`}
-              >
-                <Filter className="w-4 h-4 inline mr-2" />
-                All
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setGenderFilter('Male')}
-                className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                  genderFilter === 'Male'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-white/5 hover:bg-white/10'
-                }`}
-              >
-                Male
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setGenderFilter('Female')}
-                className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                  genderFilter === 'Female'
-                    ? 'bg-pink-500 text-white'
-                    : 'bg-white/5 hover:bg-white/10'
-                }`}
-              >
-                Female
-              </motion.button>
+            {/* Section Filter */}
+            <div className="flex gap-2 justify-center">
+              {SECTIONS.map(sec => (
+                <motion.button
+                  key={sec}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSectionFilter(sec)}
+                  className={`px-4 py-2 rounded-xl font-medium transition-all text-sm ${
+                    sectionFilter === sec
+                      ? 'bg-accent text-accent-foreground'
+                      : 'bg-white/5 hover:bg-white/10'
+                  }`}
+                >
+                  {sec === 'all' ? 'All Sections' : sec}
+                </motion.button>
+              ))}
             </div>
           </motion.div>
 
           {/* Student Grid */}
-          <motion.div
-            variants={containerVariants}
-            className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-          >
+          <motion.div variants={containerVariants} className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {filteredStudents.map((student) => (
               <motion.div
                 key={student.id}
@@ -167,11 +150,7 @@ const StudentsPage = ({ onNavigate }: StudentsPageProps) => {
           </motion.div>
 
           {filteredStudents.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12">
               <User className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
               <p className="text-muted-foreground">No students found matching your criteria</p>
             </motion.div>
@@ -179,138 +158,12 @@ const StudentsPage = ({ onNavigate }: StudentsPageProps) => {
         </div>
       </motion.div>
 
-      {/* Student Detail Modal */}
       <AnimatePresence>
         {selectedStudent && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSelectedStudent(null)}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="glass-card p-6 max-w-md w-full relative"
-            >
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => setSelectedStudent(null)}
-                className="absolute top-4 right-4 p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </motion.button>
-
-              <div className="text-center">
-                <div className="relative inline-block mb-4">
-                  <img
-                    src={selectedStudent.imageUrl}
-                    alt={selectedStudent.englishName}
-                    className="w-32 h-32 rounded-2xl object-cover border-4 border-primary/30"
-                  />
-                  <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold ${
-                    selectedStudent.gender === 'Male' ? 'bg-blue-500' : 'bg-pink-500'
-                  }`}>
-                    {selectedStudent.gender}
-                  </div>
-                </div>
-
-                <h2 className="text-2xl font-bold mb-1">{selectedStudent.name}</h2>
-                <p className="text-primary font-medium mb-4">{selectedStudent.englishName}</p>
-
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="glass-card p-3">
-                    <p className="text-xs text-muted-foreground">Age</p>
-                    <p className="font-bold">{selectedStudent.age}</p>
-                  </div>
-                  <div className="glass-card p-3">
-                    <p className="text-xs text-muted-foreground">Section</p>
-                    <p className="font-bold">{selectedStudent.section}</p>
-                  </div>
-                  <div className="glass-card p-3">
-                    <p className="text-xs text-muted-foreground">ID</p>
-                    <p className="font-bold">#{selectedStudent.id}</p>
-                  </div>
-                </div>
-
-                {/* Social Links */}
-                {(selectedStudent.telegram || selectedStudent.instagram) && (
-                  <div className="flex gap-3 justify-center mb-4">
-                    {selectedStudent.telegram && (
-                      <motion.a
-                        href={selectedStudent.telegram}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="p-3 rounded-xl bg-[#0088cc]/20 hover:bg-[#0088cc]/30 border border-[#0088cc]/30 transition-colors"
-                        title="Telegram"
-                      >
-                        <Send className="w-5 h-5 text-[#0088cc]" />
-                      </motion.a>
-                    )}
-                    {selectedStudent.instagram && (
-                      <motion.a
-                        href={selectedStudent.instagram}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="p-3 rounded-xl bg-gradient-to-br from-[#f09433]/20 via-[#e6683c]/20 to-[#bc1888]/20 hover:from-[#f09433]/30 hover:via-[#e6683c]/30 hover:to-[#bc1888]/30 border border-[#e6683c]/30 transition-colors"
-                        title="Instagram"
-                      >
-                        <Instagram className="w-5 h-5 text-[#e6683c]" />
-                      </motion.a>
-                    )}
-                  </div>
-                )}
-
-                {/* Mid & Final Result Shortcuts */}
-                {onNavigate && (
-                  <div className="flex gap-3 justify-center mb-4">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        setSelectedStudent(null);
-                        onNavigate('mid-results');
-                      }}
-                      className="flex-1 p-3 rounded-xl bg-violet-500/20 hover:bg-violet-500/30 border border-violet-500/30 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <ClipboardList className="w-4 h-4 text-violet-400" />
-                      <span className="text-sm text-violet-300">Mid Result</span>
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        setSelectedStudent(null);
-                        onNavigate('final-results');
-                      }}
-                      className="flex-1 p-3 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <FileCheck className="w-4 h-4 text-rose-400" />
-                      <span className="text-sm text-rose-300">Final Result</span>
-                    </motion.button>
-                  </div>
-                )}
-
-                <motion.button
-                  onClick={() => handleDownload(selectedStudent.imageUrl, `${selectedStudent.englishName.replace(/\s+/g, '_')}_profile.jpg`)}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="btn-gradient w-full flex items-center justify-center gap-2"
-                >
-                  <Download className="w-5 h-5" />
-                  Download Photo
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
+          <StudentDetailModal
+            student={selectedStudent}
+            onClose={() => setSelectedStudent(null)}
+          />
         )}
       </AnimatePresence>
     </>
