@@ -28,6 +28,8 @@ interface ReportCardData {
   promoted_to: string | null;
   detained_in_grade: string | null;
   rank: Record<string, number | null>;
+  card_password: string | null;
+  total_students: number | null;
 }
 
 const SUBJECTS = [
