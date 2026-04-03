@@ -77,6 +77,7 @@ export type Database = {
       report_cards: {
         Row: {
           age: number | null
+          card_password: string | null
           conduct: Json
           created_at: string
           days_absent: Json | null
@@ -97,10 +98,12 @@ export type Database = {
           teacher_name: string | null
           times_tardy: Json | null
           total_academic_days: Json | null
+          total_students: number | null
           updated_at: string
         }
         Insert: {
           age?: number | null
+          card_password?: string | null
           conduct?: Json
           created_at?: string
           days_absent?: Json | null
@@ -121,10 +124,12 @@ export type Database = {
           teacher_name?: string | null
           times_tardy?: Json | null
           total_academic_days?: Json | null
+          total_students?: number | null
           updated_at?: string
         }
         Update: {
           age?: number | null
+          card_password?: string | null
           conduct?: Json
           created_at?: string
           days_absent?: Json | null
@@ -145,6 +150,7 @@ export type Database = {
           teacher_name?: string | null
           times_tardy?: Json | null
           total_academic_days?: Json | null
+          total_students?: number | null
           updated_at?: string
         }
         Relationships: []

@@ -28,6 +28,8 @@ interface ReportCardData {
   promoted_to: string | null;
   detained_in_grade: string | null;
   rank: Record<string, number | null>;
+  card_password: string | null;
+  total_students: number | null;
 }
 
 const SUBJECTS = [
@@ -51,6 +53,9 @@ const StudentDetailModal = ({ student, onClose }: Props) => {
   const [passwordInputs, setPasswordInputs] = useState<Record<string, string>>({});
   const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({});
   const [showAnswers, setShowAnswers] = useState<Set<string>>(new Set());
+  const [reportCardLocked, setReportCardLocked] = useState(true);
+  const [reportCardPwdInput, setReportCardPwdInput] = useState('');
+  const [reportCardPwdError, setReportCardPwdError] = useState('');
 
   const getKey = (r: ExamResult, type: string) => `${type}|${r.student_id}|${r.subject || ''}`;
 
@@ -83,8 +88,23 @@ const StudentDetailModal = ({ student, onClose }: Props) => {
       .select('*')
       .eq('student_id', String(student.id))
       .single();
-    if (data) setReportCard(data as unknown as ReportCardData);
+    if (data) {
+      const rc = data as unknown as ReportCardData;
+      setReportCard(rc);
+      // If no password set, auto-unlock
+      if (!rc.card_password) setReportCardLocked(false);
+      else setReportCardLocked(true);
+    }
     setLoading(false);
+  };
+
+  const handleReportCardUnlock = () => {
+    if (reportCardPwdInput === reportCard?.card_password) {
+      setReportCardLocked(false);
+      setReportCardPwdError('');
+    } else {
+      setReportCardPwdError('Incorrect password');
+    }
   };
 
   const handleUnlock = (key: string, result: ExamResult) => {
@@ -203,7 +223,38 @@ const StudentDetailModal = ({ student, onClose }: Props) => {
     if (loading) return <p className="text-center text-muted-foreground py-4">Loading...</p>;
     if (!reportCard) return <p className="text-center text-muted-foreground py-4">No report card available</p>;
 
+    if (reportCardLocked && reportCard.card_password) {
+      return (
+        <div className="space-y-3 py-4">
+          <div className="flex items-center gap-2 text-amber-400 text-sm justify-center">
+            <Lock className="w-4 h-4" />
+            <span>Report card is password protected</span>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="password"
+              placeholder="Enter password"
+              value={reportCardPwdInput}
+              onChange={(e) => setReportCardPwdInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleReportCardUnlock()}
+              className="input-glass flex-1 text-sm py-1.5 px-3"
+            />
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleReportCardUnlock}
+              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium"
+            >
+              Unlock
+            </motion.button>
+          </div>
+          {reportCardPwdError && <p className="text-red-400 text-xs text-center">{reportCardPwdError}</p>}
+        </div>
+      );
+    }
+
     const subjects = reportCard.subjects || {};
+    const allAvgs: number[] = [];
+    
     return (
       <div className="max-h-[50vh] overflow-y-auto pr-1">
         <div className="overflow-x-auto">
@@ -223,6 +274,7 @@ const StudentDetailModal = ({ student, onClose }: Props) => {
                 const marks = subjects[subj] || {};
                 const vals = ['1st', '2nd', '3rd', '4th'].map(q => marks[q] as number | null).filter(v => v != null) as number[];
                 const avg = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+                if (avg != null) allAvgs.push(avg);
                 return (
                   <tr key={subj} className="border-b border-white/5">
                     <td className="py-1.5 px-2 truncate max-w-[100px]">{subj}</td>
@@ -243,6 +295,26 @@ const StudentDetailModal = ({ student, onClose }: Props) => {
             </tbody>
           </table>
         </div>
+
+        {/* Summary: Total Average, Rank */}
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          <div className="glass-card p-2.5 text-center">
+            <p className="text-xs text-muted-foreground">Total Average</p>
+            <p className={`font-bold text-lg ${allAvgs.length > 0 && (allAvgs.reduce((a,b) => a+b, 0) / allAvgs.length) < 60 ? 'text-red-400' : 'text-green-400'}`}>
+              {allAvgs.length > 0 ? (allAvgs.reduce((a,b) => a+b, 0) / allAvgs.length).toFixed(1) : '-'}
+            </p>
+          </div>
+          <div className="glass-card p-2.5 text-center">
+            <p className="text-xs text-muted-foreground">Rank</p>
+            <p className="font-bold text-lg text-primary">
+              {reportCard.rank && typeof reportCard.rank === 'object' 
+                ? Object.values(reportCard.rank).filter(v => v != null)[0] || '-'
+                : '-'}
+              {reportCard.total_students ? <span className="text-xs text-muted-foreground font-normal"> / {reportCard.total_students}</span> : ''}
+            </p>
+          </div>
+        </div>
+
         {(reportCard.promoted_to || reportCard.detained_in_grade) && (
           <div className={`mt-3 p-2 rounded-lg text-center text-sm font-bold ${reportCard.promoted_to ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
             {reportCard.promoted_to ? `Promoted to Grade ${reportCard.promoted_to}` : `Detained in Grade ${reportCard.detained_in_grade}`}
