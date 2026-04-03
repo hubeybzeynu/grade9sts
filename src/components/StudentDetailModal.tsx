@@ -88,8 +88,23 @@ const StudentDetailModal = ({ student, onClose }: Props) => {
       .select('*')
       .eq('student_id', String(student.id))
       .single();
-    if (data) setReportCard(data as unknown as ReportCardData);
+    if (data) {
+      const rc = data as unknown as ReportCardData;
+      setReportCard(rc);
+      // If no password set, auto-unlock
+      if (!rc.card_password) setReportCardLocked(false);
+      else setReportCardLocked(true);
+    }
     setLoading(false);
+  };
+
+  const handleReportCardUnlock = () => {
+    if (reportCardPwdInput === reportCard?.card_password) {
+      setReportCardLocked(false);
+      setReportCardPwdError('');
+    } else {
+      setReportCardPwdError('Incorrect password');
+    }
   };
 
   const handleUnlock = (key: string, result: ExamResult) => {
