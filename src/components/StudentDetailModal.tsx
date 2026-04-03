@@ -53,6 +53,9 @@ const StudentDetailModal = ({ student, onClose }: Props) => {
   const [passwordInputs, setPasswordInputs] = useState<Record<string, string>>({});
   const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({});
   const [showAnswers, setShowAnswers] = useState<Set<string>>(new Set());
+  const [reportCardLocked, setReportCardLocked] = useState(true);
+  const [reportCardPwdInput, setReportCardPwdInput] = useState('');
+  const [reportCardPwdError, setReportCardPwdError] = useState('');
 
   const getKey = (r: ExamResult, type: string) => `${type}|${r.student_id}|${r.subject || ''}`;
 
