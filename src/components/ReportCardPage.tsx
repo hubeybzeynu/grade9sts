@@ -106,6 +106,14 @@ const ReportCardPage = () => {
 
     const card = data as unknown as ReportCardData;
     setReportCard(card);
+    // Check if this card needs password and isn't already unlocked
+    if (card.card_password && !unlockedCardIds.has(card.id)) {
+      setCardLocked(true);
+      setCardPwdInput('');
+      setCardPwdError('');
+    } else {
+      setCardLocked(false);
+    }
     const idx = allCards.findIndex(c => c.id === card.id);
     if (idx >= 0) setCurrentIndex(idx);
   };
@@ -119,7 +127,27 @@ const ReportCardPage = () => {
     if (allCards.length === 0) return;
     const newIdx = (currentIndex + dir + allCards.length) % allCards.length;
     setCurrentIndex(newIdx);
-    setReportCard(allCards[newIdx]);
+    const newCard = allCards[newIdx];
+    setReportCard(newCard);
+    // Check password for navigated card
+    if (newCard.card_password && !unlockedCardIds.has(newCard.id)) {
+      setCardLocked(true);
+      setCardPwdInput('');
+      setCardPwdError('');
+    } else {
+      setCardLocked(false);
+    }
+  };
+
+  const handleCardUnlock = () => {
+    if (!reportCard) return;
+    if (cardPwdInput === reportCard.card_password) {
+      setCardLocked(false);
+      setCardPwdError('');
+      setUnlockedCardIds(prev => new Set(prev).add(reportCard.id));
+    } else {
+      setCardPwdError('Incorrect password');
+    }
   };
 
   const getSubjectAvg = (marks: Record<string, number | null>) => {
