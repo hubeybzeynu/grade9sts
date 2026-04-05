@@ -39,6 +39,8 @@ interface ReportCardData {
   remarks: string | null;
   promoted_to: string | null;
   detained_in_grade: string | null;
+  card_password: string | null;
+  total_students: number | null;
 }
 
 const ReportCardPage = () => {
