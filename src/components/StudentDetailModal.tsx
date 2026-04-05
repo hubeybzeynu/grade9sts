@@ -317,7 +317,7 @@ const StudentDetailModal = ({ student, onClose }: Props) => {
 
         {(reportCard.promoted_to || reportCard.detained_in_grade) && (
           <div className={`mt-3 p-2 rounded-lg text-center text-sm font-bold ${reportCard.promoted_to ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-            {reportCard.promoted_to ? `Promoted to Grade ${reportCard.promoted_to}` : `Detained in Grade ${reportCard.detained_in_grade}`}
+            {reportCard.promoted_to ? `Promoted to ${reportCard.promoted_to.replace(/^grade\s*/i, 'Grade ')}` : `Detained in ${reportCard.detained_in_grade?.replace(/^grade\s*/i, 'Grade ')}`}
           </div>
         )}
       </div>

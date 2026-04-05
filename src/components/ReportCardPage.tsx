@@ -162,7 +162,7 @@ const ReportCardPage = () => {
   const gradeNum = reportCard?.grade ? parseInt(reportCard.grade.replace(/\D/g, '')) : 9;
   const statusText = failedCount >= 2
     ? `Detained in Grade ${gradeNum}`
-    : `Promoted to Grade ${gradeNum + 1}`;
+    : `Promoted to ${reportCard?.promoted_to ? reportCard.promoted_to.replace(/^grade\s*/i, 'Grade ') : `Grade ${gradeNum + 1}`}`;
 
   return (
     <div className="pt-24 pb-12 px-4 min-h-screen">
