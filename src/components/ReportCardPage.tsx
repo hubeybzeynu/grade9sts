@@ -255,8 +255,29 @@ const ReportCardPage = () => {
                   </button>
                 </div>
               )}
-
-              {/* Card */}
+              {/* Password Gate */}
+              {cardLocked && reportCard.card_password ? (
+                <div className="glass-card p-6 md:p-8 border border-primary/20">
+                  <div className="text-center py-8 space-y-4">
+                    <Lock className="w-12 h-12 mx-auto text-amber-400" />
+                    <h3 className="text-xl font-bold">Report Card Protected</h3>
+                    <p className="text-muted-foreground text-sm">This report card is password protected. Enter the password to view.</p>
+                    <div className="flex gap-2 max-w-xs mx-auto">
+                      <input
+                        type="password"
+                        placeholder="Enter password"
+                        value={cardPwdInput}
+                        onChange={(e) => setCardPwdInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleCardUnlock()}
+                        className="flex-1 px-4 py-3 rounded-xl bg-background/50 border border-border focus:border-primary focus:outline-none"
+                      />
+                      <button onClick={handleCardUnlock} className="btn-primary px-6 py-3 rounded-xl">Unlock</button>
+                    </div>
+                    {cardPwdError && <p className="text-red-400 text-sm">{cardPwdError}</p>}
+                  </div>
+                </div>
+              ) : (
+              /* Card */
               <div className="glass-card p-6 md:p-8 border border-primary/20">
                 {/* Header */}
                 <div className="text-center mb-6 border-b border-border pb-4">
