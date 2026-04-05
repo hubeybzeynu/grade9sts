@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Users, Award, ArrowRight, Sparkles, CheckCircle, ClipboardList, FileCheck } from 'lucide-react';
+import { BookOpen, Users, Award, ArrowRight, Sparkles, CheckCircle, ClipboardList, FileCheck, FileText } from 'lucide-react';
 
 interface WelcomeOnboardingProps {
   onComplete: () => void;
