@@ -49,6 +49,10 @@ const ReportCardPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
+  const [cardLocked, setCardLocked] = useState(true);
+  const [cardPwdInput, setCardPwdInput] = useState('');
+  const [cardPwdError, setCardPwdError] = useState('');
+  const [unlockedCardIds, setUnlockedCardIds] = useState<Set<string>>(new Set());
 
   // Realtime subscription
   useEffect(() => {
