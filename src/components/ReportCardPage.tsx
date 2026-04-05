@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Search, Download, ChevronLeft, ChevronRight, Printer } from 'lucide-react';
+import { FileText, Search, Download, ChevronLeft, ChevronRight, Printer, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { students } from '@/data/students';
 
@@ -39,6 +39,8 @@ interface ReportCardData {
   remarks: string | null;
   promoted_to: string | null;
   detained_in_grade: string | null;
+  card_password: string | null;
+  total_students: number | null;
 }
 
 const ReportCardPage = () => {
@@ -49,6 +51,10 @@ const ReportCardPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
+  const [cardLocked, setCardLocked] = useState(true);
+  const [cardPwdInput, setCardPwdInput] = useState('');
+  const [cardPwdError, setCardPwdError] = useState('');
+  const [unlockedCardIds, setUnlockedCardIds] = useState<Set<string>>(new Set());
 
   // Realtime subscription
   useEffect(() => {
@@ -102,6 +108,14 @@ const ReportCardPage = () => {
 
     const card = data as unknown as ReportCardData;
     setReportCard(card);
+    // Check if this card needs password and isn't already unlocked
+    if (card.card_password && !unlockedCardIds.has(card.id)) {
+      setCardLocked(true);
+      setCardPwdInput('');
+      setCardPwdError('');
+    } else {
+      setCardLocked(false);
+    }
     const idx = allCards.findIndex(c => c.id === card.id);
     if (idx >= 0) setCurrentIndex(idx);
   };
@@ -115,7 +129,27 @@ const ReportCardPage = () => {
     if (allCards.length === 0) return;
     const newIdx = (currentIndex + dir + allCards.length) % allCards.length;
     setCurrentIndex(newIdx);
-    setReportCard(allCards[newIdx]);
+    const newCard = allCards[newIdx];
+    setReportCard(newCard);
+    // Check password for navigated card
+    if (newCard.card_password && !unlockedCardIds.has(newCard.id)) {
+      setCardLocked(true);
+      setCardPwdInput('');
+      setCardPwdError('');
+    } else {
+      setCardLocked(false);
+    }
+  };
+
+  const handleCardUnlock = () => {
+    if (!reportCard) return;
+    if (cardPwdInput === reportCard.card_password) {
+      setCardLocked(false);
+      setCardPwdError('');
+      setUnlockedCardIds(prev => new Set(prev).add(reportCard.id));
+    } else {
+      setCardPwdError('Incorrect password');
+    }
   };
 
   const getSubjectAvg = (marks: Record<string, number | null>) => {
@@ -162,7 +196,7 @@ const ReportCardPage = () => {
   const gradeNum = reportCard?.grade ? parseInt(reportCard.grade.replace(/\D/g, '')) : 9;
   const statusText = failedCount >= 2
     ? `Detained in Grade ${gradeNum}`
-    : `Promoted to Grade ${gradeNum + 1}`;
+    : `Promoted to ${reportCard?.promoted_to ? reportCard.promoted_to.replace(/^grade\s*/i, 'Grade ') : `Grade ${gradeNum + 1}`}`;
 
   return (
     <div className="pt-24 pb-12 px-4 min-h-screen">
@@ -221,8 +255,29 @@ const ReportCardPage = () => {
                   </button>
                 </div>
               )}
-
-              {/* Card */}
+              {/* Password Gate */}
+              {cardLocked && reportCard.card_password ? (
+                <div className="glass-card p-6 md:p-8 border border-primary/20">
+                  <div className="text-center py-8 space-y-4">
+                    <Lock className="w-12 h-12 mx-auto text-amber-400" />
+                    <h3 className="text-xl font-bold">Report Card Protected</h3>
+                    <p className="text-muted-foreground text-sm">This report card is password protected. Enter the password to view.</p>
+                    <div className="flex gap-2 max-w-xs mx-auto">
+                      <input
+                        type="password"
+                        placeholder="Enter password"
+                        value={cardPwdInput}
+                        onChange={(e) => setCardPwdInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleCardUnlock()}
+                        className="flex-1 px-4 py-3 rounded-xl bg-background/50 border border-border focus:border-primary focus:outline-none"
+                      />
+                      <button onClick={handleCardUnlock} className="btn-primary px-6 py-3 rounded-xl">Unlock</button>
+                    </div>
+                    {cardPwdError && <p className="text-red-400 text-sm">{cardPwdError}</p>}
+                  </div>
+                </div>
+              ) : (
+              /* Card */
               <div className="glass-card p-6 md:p-8 border border-primary/20">
                 {/* Header */}
                 <div className="text-center mb-6 border-b border-border pb-4">
@@ -418,6 +473,7 @@ const ReportCardPage = () => {
                   </button>
                 </div>
               </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

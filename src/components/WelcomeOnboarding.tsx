@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Users, Award, ArrowRight, Sparkles, CheckCircle, ClipboardList, FileCheck } from 'lucide-react';
+import { BookOpen, Users, Award, ArrowRight, Sparkles, CheckCircle, ClipboardList, FileCheck, FileText } from 'lucide-react';
 
 interface WelcomeOnboardingProps {
   onComplete: () => void;
@@ -25,7 +25,7 @@ const WelcomeOnboarding = ({ onComplete }: WelcomeOnboardingProps) => {
     {
       icon: Users,
       title: 'Student Directory',
-      description: 'Browse through the complete student list. Search by name, filter by gender, and download student photos.',
+      description: 'Browse through the complete student list. Search by name, filter by gender and section, and download student photos.',
       color: 'from-violet-500 to-purple-600',
     },
     {
@@ -45,6 +45,12 @@ const WelcomeOnboarding = ({ onComplete }: WelcomeOnboardingProps) => {
       title: 'Final Exam Results',
       description: 'View your final exam results securely. Password-protected results ensure only you can see your grades.',
       color: 'from-rose-500 to-red-600',
+    },
+    {
+      icon: FileText,
+      title: 'Report Card',
+      description: 'Access your full academic report card with subject marks, averages, rank, conduct, attendance, and promotion status.',
+      color: 'from-teal-500 to-cyan-600',
     },
   ];
 

@@ -17,14 +17,16 @@ const StudentsPage = ({ onNavigate }: StudentsPageProps) => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   const filteredStudents = useMemo(() => {
-    return allStudents.filter((student) => {
-      const matchesSearch =
-        student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        student.englishName.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesGender = genderFilter === 'all' || student.gender === genderFilter;
-      const matchesSection = sectionFilter === 'all' || student.section === sectionFilter;
-      return matchesSearch && matchesGender && matchesSection;
-    });
+    return allStudents
+      .filter((student) => {
+        const matchesSearch =
+          student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          student.englishName.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesGender = genderFilter === 'all' || student.gender === genderFilter;
+        const matchesSection = sectionFilter === 'all' || student.section === sectionFilter;
+        return matchesSearch && matchesGender && matchesSection;
+      })
+      .sort((a, b) => a.englishName.localeCompare(b.englishName));
   }, [searchQuery, genderFilter, sectionFilter]);
 
   const containerVariants = {
