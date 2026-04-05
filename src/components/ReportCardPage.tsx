@@ -473,6 +473,7 @@ const ReportCardPage = () => {
                   </button>
                 </div>
               </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
