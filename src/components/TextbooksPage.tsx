@@ -180,7 +180,7 @@ const TextbooksPage = () => {
             </div>
 
             {/* AI Chat overlay when reading */}
-            <TextbookAIChat subject={openBook.title} />
+            <TextbookContentFinder subject={openBook.title} />
           </motion.div>
         )}
       </AnimatePresence>
