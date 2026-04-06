@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Download, ExternalLink, X } from 'lucide-react';
-import TextbookAIChat from './TextbookAIChat';
+import TextbookContentFinder from './TextbookContentFinder';
 
 const TextbooksPage = () => {
   const [openBook, setOpenBook] = useState<{ url: string; title: string; isLocal?: boolean } | null>(null);
@@ -180,7 +180,7 @@ const TextbooksPage = () => {
             </div>
 
             {/* AI Chat overlay when reading */}
-            <TextbookAIChat subject={openBook.title} />
+            <TextbookContentFinder subject={openBook.title} />
           </motion.div>
         )}
       </AnimatePresence>
