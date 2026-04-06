@@ -12,8 +12,16 @@ const PORTAL_URL = "https://grade9sts.lovable.app";
 const EXT_URL = "https://vcmyxcfdecpmcfpkdony.supabase.co";
 const EXT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjbXl4Y2ZkZWNwbWNmcGtkb255Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNjk1NDgsImV4cCI6MjA4OTk0NTU0OH0.n7oK07eaQl9RpFbKqCUMVODnyxzUFrjdN1yJsM6yQLE";
 
-// Simple in-memory state for conversational flow per chat
-const chatStates = new Map<number, { mode: string; studentId?: string }>();
+// Context markers embedded in bot messages to detect what the user is replying to
+const CTX_MID_ID = "📝 Mid Exam Results\n\nType your student ID number:";
+const CTX_FINAL_ID = "📋 Final Exam Results\n\nType your student ID number:";
+const CTX_CARD_ID = "🎓 Report Card\n\nType your student ID number:";
+const CTX_RESULTS_ID = "📊 Ministry Exam Results\n\nType your name in Amharic or English:";
+const CTX_MID_PW = "🔒 Password required for mid results";
+const CTX_FINAL_PW = "🔒 Password required for final results";
+const CTX_CARD_PW = "🔒 Password required for report card";
+const CTX_TB_PREFIX = "📚 Type the number to view content.";
+const CTX_STUDENTS = "👥 Student Directory\n\nType a student ID (1-98) or name to search:";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -52,6 +60,7 @@ serve(async (req) => {
     const text = message?.text?.trim() || "";
     const callbackData = callbackQuery?.data;
     const callbackMessageId = callbackQuery?.message?.message_id;
+    const replyToText = message?.reply_to_message?.text || "";
 
     if (!chatId) return new Response("OK");
 
@@ -70,6 +79,10 @@ serve(async (req) => {
         body: JSON.stringify({ chat_id: cid, text: txt, parse_mode: "HTML", ...opts }),
       });
       return await res.json();
+    };
+
+    const sendForceReply = async (cid: number, txt: string, opts: any = {}) => {
+      return await send(cid, txt, { ...opts, reply_markup: { force_reply: true, selective: true } });
     };
 
     const editMessage = async (cid: number, mid: number, txt: string, opts: any = {}) => {
@@ -110,9 +123,93 @@ serve(async (req) => {
       { key: "amharic", name: "📖 Amharic" },
     ];
 
-    // === MAIN MENU ===
+    // ============ REPLY-BASED CONTEXT DETECTION ============
+    // If user is replying to a bot message, detect context from that message
+    if (text && replyToText) {
+      // Mid exam - user typed ID
+      if (replyToText.includes(CTX_MID_ID)) {
+        const idNum = text.match(/^(\d+)$/);
+        if (!idNum) {
+          await sendForceReply(chatId, CTX_MID_ID);
+          return new Response("OK");
+        }
+        await handleMidResults(chatId, idNum[1]);
+        return new Response("OK");
+      }
+
+      // Mid exam - user typed password
+      if (replyToText.includes(CTX_MID_PW)) {
+        const sidMatch = replyToText.match(/student_id:(\d+)/);
+        if (sidMatch) {
+          await handlePasswordUnlock(chatId, "mid", sidMatch[1], text);
+        }
+        return new Response("OK");
+      }
+
+      // Final exam - user typed ID
+      if (replyToText.includes(CTX_FINAL_ID)) {
+        const idNum = text.match(/^(\d+)$/);
+        if (!idNum) {
+          await sendForceReply(chatId, CTX_FINAL_ID);
+          return new Response("OK");
+        }
+        await handleFinalResults(chatId, idNum[1]);
+        return new Response("OK");
+      }
+
+      // Final exam - user typed password
+      if (replyToText.includes(CTX_FINAL_PW)) {
+        const sidMatch = replyToText.match(/student_id:(\d+)/);
+        if (sidMatch) {
+          await handlePasswordUnlock(chatId, "final", sidMatch[1], text);
+        }
+        return new Response("OK");
+      }
+
+      // Report card - user typed ID
+      if (replyToText.includes(CTX_CARD_ID)) {
+        const idNum = text.match(/^(\d+)$/);
+        if (!idNum) {
+          await sendForceReply(chatId, CTX_CARD_ID);
+          return new Response("OK");
+        }
+        await handleReportCard(chatId, idNum[1]);
+        return new Response("OK");
+      }
+
+      // Report card - user typed password
+      if (replyToText.includes(CTX_CARD_PW)) {
+        const sidMatch = replyToText.match(/student_id:(\d+)/);
+        if (sidMatch) {
+          await handleCardPasswordUnlock(chatId, sidMatch[1], text);
+        }
+        return new Response("OK");
+      }
+
+      // Ministry results - user typed name (forget ID)
+      if (replyToText.includes(CTX_RESULTS_ID)) {
+        await handleMinistryNameSearch(chatId, text);
+        return new Response("OK");
+      }
+
+      // Textbook content - user typed number
+      if (replyToText.includes(CTX_TB_PREFIX)) {
+        const tbMatch = replyToText.match(/tb_key:(\w+)\|cat:(\w+)/);
+        if (tbMatch) {
+          await handleTextbookContent(chatId, tbMatch[1], tbMatch[2], text);
+        }
+        return new Response("OK");
+      }
+
+      // Students search
+      if (replyToText.includes(CTX_STUDENTS)) {
+        await handleStudentSearch(chatId, text);
+        return new Response("OK");
+      }
+    }
+
+    // ============ MAIN MENU ============
     if (text === "/start" || callbackData === "menu_start") {
-      chatStates.delete(chatId);
       const msg = `🏫 <b>ቅዱስ ቴሬዛ ት/ቤት - Student Portal Bot</b>\n\nWelcome! Choose an option:`;
       if (callbackMessageId) {
         await editMessage(chatId, callbackMessageId, msg, { reply_markup: mainMenuKeyboard });
@@ -122,9 +219,8 @@ serve(async (req) => {
       return new Response("OK");
     }
 
-    // === TEXTBOOKS MENU ===
+    // ============ TEXTBOOKS ============
     if (callbackData === "menu_textbooks") {
-      chatStates.delete(chatId);
       const kb = {
         inline_keyboard: [
           ...textbooksList.map(t => [{ text: t.name, callback_data: `tb_${t.key}` }]),
@@ -140,10 +236,10 @@ serve(async (req) => {
       return new Response("OK");
     }
 
-    // Textbook selected - show content categories
-    const tbMatch = callbackData?.match(/^tb_(\w+)$/);
-    if (tbMatch) {
-      const tbKey = tbMatch[1];
+    // Textbook selected
+    const tbSelect = callbackData?.match(/^tb_(\w+)$/);
+    if (tbSelect) {
+      const tbKey = tbSelect[1];
       const tbName = textbooksList.find(t => t.key === tbKey)?.name || tbKey;
       const kb = {
         inline_keyboard: [
@@ -161,124 +257,63 @@ serve(async (req) => {
       return new Response("OK");
     }
 
-    // Textbook content category selected - show items list
-    const tbcMatch = callbackData?.match(/^tbc_(\w+)_(activities|exercises|review)$/);
-    if (tbcMatch) {
-      const tbKey = tbcMatch[1];
-      const category = tbcMatch[2];
-      // Set state to await number input
-      chatStates.set(chatId, { mode: `tb_browse_${tbKey}_${category}` });
-      
+    // Textbook content category - ask for number with force_reply
+    const tbcSelect = callbackData?.match(/^tbc_(\w+)_(activities|exercises|review)$/);
+    if (tbcSelect) {
+      const tbKey = tbcSelect[1];
+      const category = tbcSelect[2];
       const catLabel = category === 'activities' ? 'Activities' : category === 'exercises' ? 'Exercises' : 'Review Exercises';
-      const msg = `📚 <b>${tbKey.charAt(0).toUpperCase() + tbKey.slice(1)} - ${catLabel}</b>\n\nType the number to view content.\nExample: <code>4.1</code>`;
-      
-      const kb = {
-        inline_keyboard: [[{ text: "◀️ Back", callback_data: `tb_${tbKey}` }]],
-      };
-      if (callbackMessageId) {
-        await editMessage(chatId, callbackMessageId, msg, { reply_markup: kb });
-      } else {
-        await send(chatId, msg, { reply_markup: kb });
-      }
+      const tbName = textbooksList.find(t => t.key === tbKey)?.name || tbKey;
+      // Include hidden context for reply detection
+      const msg = `${tbName} - ${catLabel}\n\n${CTX_TB_PREFIX}\nExample: 4.1\n\ntb_key:${tbKey}|cat:${category}`;
+      await sendForceReply(chatId, msg);
       return new Response("OK");
     }
 
-    // === STUDENTS MENU ===
+    // ============ STUDENTS ============
     if (callbackData === "menu_students") {
-      chatStates.set(chatId, { mode: "students_search" });
-      const msg = `👥 <b>Student Directory</b>\n\nType a student ID (1-98) or name to search:`;
-      const kb = {
-        inline_keyboard: [
-          [{ text: "🌐 View All Online", url: `${PORTAL_URL}?tab=students` }],
-          [{ text: "◀️ Back", callback_data: "menu_start" }],
-        ],
-      };
-      if (callbackMessageId) {
-        await editMessage(chatId, callbackMessageId, msg, { reply_markup: kb });
-      } else {
-        await send(chatId, msg, { reply_markup: kb });
-      }
+      await sendForceReply(chatId, CTX_STUDENTS);
       return new Response("OK");
     }
 
-    // === MID EXAM - conversational ===
+    // ============ MID EXAM ============
     if (callbackData === "menu_mid") {
-      chatStates.set(chatId, { mode: "mid_await_id" });
-      const msg = `📝 <b>Mid Exam Results</b>\n\nType your student ID number:`;
-      const kb = { inline_keyboard: [[{ text: "◀️ Back", callback_data: "menu_start" }]] };
-      if (callbackMessageId) {
-        await editMessage(chatId, callbackMessageId, msg, { reply_markup: kb });
-      } else {
-        await send(chatId, msg, { reply_markup: kb });
-      }
+      await sendForceReply(chatId, CTX_MID_ID);
       return new Response("OK");
     }
 
-    // === FINAL EXAM - conversational ===
+    // ============ FINAL EXAM ============
     if (callbackData === "menu_final") {
-      chatStates.set(chatId, { mode: "final_await_id" });
-      const msg = `📋 <b>Final Exam Results</b>\n\nType your student ID number:`;
-      const kb = { inline_keyboard: [[{ text: "◀️ Back", callback_data: "menu_start" }]] };
-      if (callbackMessageId) {
-        await editMessage(chatId, callbackMessageId, msg, { reply_markup: kb });
-      } else {
-        await send(chatId, msg, { reply_markup: kb });
-      }
+      await sendForceReply(chatId, CTX_FINAL_ID);
       return new Response("OK");
     }
 
-    // === REPORT CARD - conversational ===
+    // ============ REPORT CARD ============
     if (callbackData === "menu_reportcard") {
-      chatStates.set(chatId, { mode: "card_await_id" });
-      const msg = `🎓 <b>Report Card</b>\n\nType your student ID number:`;
-      const kb = { inline_keyboard: [[{ text: "◀️ Back", callback_data: "menu_start" }]] };
-      if (callbackMessageId) {
-        await editMessage(chatId, callbackMessageId, msg, { reply_markup: kb });
-      } else {
-        await send(chatId, msg, { reply_markup: kb });
-      }
+      await sendForceReply(chatId, CTX_CARD_ID);
       return new Response("OK");
     }
 
-    // === MINISTRY RESULTS ===
+    // ============ MINISTRY RESULTS (with forget ID) ============
     if (callbackData === "menu_results") {
-      chatStates.set(chatId, { mode: "results_await_id" });
-      const msg = `📊 <b>Ministry Exam Results</b>\n\nType your ministry ID number:`;
-      const kb = { inline_keyboard: [[{ text: "◀️ Back", callback_data: "menu_start" }]] };
-      if (callbackMessageId) {
-        await editMessage(chatId, callbackMessageId, msg, { reply_markup: kb });
-      } else {
-        await send(chatId, msg, { reply_markup: kb });
-      }
+      await sendForceReply(chatId, CTX_RESULTS_ID);
       return new Response("OK");
     }
 
-    // === STUDENT DETAIL CALLBACKS ===
+    // ============ STUDENT DETAIL CALLBACKS ============
     const quickMid = callbackData?.match(/^quick_mid_(\d+)$/);
-    if (quickMid) {
-      const studentId = quickMid[1];
-      await handleMidResults(chatId, studentId);
-      return new Response("OK");
-    }
+    if (quickMid) { await handleMidResults(chatId, quickMid[1]); return new Response("OK"); }
 
     const quickFinal = callbackData?.match(/^quick_final_(\d+)$/);
-    if (quickFinal) {
-      const studentId = quickFinal[1];
-      await handleFinalResults(chatId, studentId);
-      return new Response("OK");
-    }
+    if (quickFinal) { await handleFinalResults(chatId, quickFinal[1]); return new Response("OK"); }
 
     const quickCard = callbackData?.match(/^quick_card_(\d+)$/);
-    if (quickCard) {
-      const studentId = quickCard[1];
-      await handleReportCard(chatId, studentId);
-      return new Response("OK");
-    }
+    if (quickCard) { await handleReportCard(chatId, quickCard[1]); return new Response("OK"); }
 
-    const studentCallback = callbackData?.match(/^student_(\d+)$/);
-    if (studentCallback) {
-      const studentId = parseInt(studentCallback[1]);
-      const { data: student } = await supabase.from("students").select("*").eq("id", studentId).single();
+    const studentCb = callbackData?.match(/^student_(\d+)$/);
+    if (studentCb) {
+      const sid = parseInt(studentCb[1]);
+      const { data: student } = await supabase.from("students").select("*").eq("id", sid).single();
       if (!student) {
         await editMessage(chatId, callbackMessageId!, `❌ Student not found.`, {
           reply_markup: { inline_keyboard: [[{ text: "◀️ Main Menu", callback_data: "menu_start" }]] },
@@ -296,252 +331,42 @@ serve(async (req) => {
       return new Response("OK");
     }
 
-    // === CONVERSATIONAL TEXT HANDLERS ===
-    const state = chatStates.get(chatId);
-
-    if (state && text) {
-      // Textbook content browsing
-      const tbBrowse = state.mode.match(/^tb_browse_(\w+)_(activities|exercises|review)$/);
-      if (tbBrowse) {
-        const tbKey = tbBrowse[1];
-        const category = tbBrowse[2];
-        const searchNum = text.trim();
-        
-        // Fetch content from the edge function or use inline data
-        const catKey = category === 'review' ? 'Review Exercise' : category === 'activities' ? 'Activity' : 'Exercise';
-        const searchId = `${catKey} ${searchNum}`;
-        
-        // We need to search the textbook content - let's fetch from the portal data
-        const portalUrl = `${PORTAL_URL}`;
-        
-        // Send a message saying we found it or not
-        await send(chatId, `🔍 Looking for <b>${searchId}</b> in ${tbKey}...\n\n📱 For full content, open the textbook on the portal and use the Content Finder button.`, {
-          reply_markup: { inline_keyboard: [
-            [{ text: "🌐 Open in Portal", url: `${PORTAL_URL}?tab=textbooks` }],
-            [{ text: "◀️ Back", callback_data: `tb_${tbKey}` }],
-          ]},
-        });
-        return new Response("OK");
-      }
-
-      // Mid - awaiting ID
-      if (state.mode === "mid_await_id") {
-        const idNum = text.match(/^(\d+)$/);
-        if (idNum) {
-          const studentId = idNum[1];
-          const { data: student } = await supabase.from("students").select("*").eq("id", parseInt(studentId)).single();
-          if (!student) {
-            await send(chatId, `❌ Student with ID ${studentId} not found. Try again:`);
-            return new Response("OK");
-          }
-          await handleMidResults(chatId, studentId);
-          chatStates.delete(chatId);
-          return new Response("OK");
-        }
-        await send(chatId, `⚠️ Please type only the ID number (e.g. <code>5</code>):`);
-        return new Response("OK");
-      }
-
-      // Mid - awaiting password
-      if (state.mode === "mid_await_password" && state.studentId) {
-        const password = text;
-        const { data: student } = await supabase.from("students").select("*").eq("id", parseInt(state.studentId)).single();
-        const { data: results } = await extSupabase.from("mid_results").select("*").eq("student_id", state.studentId);
-        
-        if (results) {
-          const locked = results.filter((r: any) => r.student_password);
-          const matched = locked.filter((r: any) => r.student_password === password);
-          if (matched.length > 0) {
-            for (const r of matched) {
-              if (r.result_image_url) {
-                const kb: any = { inline_keyboard: [] };
-                if (r.answer_image_url) {
-                  kb.inline_keyboard.push([{ text: "📝 Show Answer", callback_data: `answer_mid_${r.id}` }]);
-                }
-                await sendPhoto(chatId, r.result_image_url, `🔓 Mid Result - ${student?.name}`, { reply_markup: kb });
-              }
-            }
-            chatStates.delete(chatId);
-          } else {
-            await send(chatId, `❌ Incorrect password. Try again:`);
-          }
-        }
-        return new Response("OK");
-      }
-
-      // Final - awaiting ID
-      if (state.mode === "final_await_id") {
-        const idNum = text.match(/^(\d+)$/);
-        if (idNum) {
-          const studentId = idNum[1];
-          const { data: student } = await supabase.from("students").select("*").eq("id", parseInt(studentId)).single();
-          if (!student) {
-            await send(chatId, `❌ Student with ID ${studentId} not found. Try again:`);
-            return new Response("OK");
-          }
-          await handleFinalResults(chatId, studentId);
-          chatStates.delete(chatId);
-          return new Response("OK");
-        }
-        await send(chatId, `⚠️ Please type only the ID number (e.g. <code>5</code>):`);
-        return new Response("OK");
-      }
-
-      // Final - awaiting password
-      if (state.mode === "final_await_password" && state.studentId) {
-        const password = text;
-        const { data: student } = await supabase.from("students").select("*").eq("id", parseInt(state.studentId)).single();
-        const { data: results } = await extSupabase.from("final_results").select("*").eq("student_id", state.studentId);
-        
-        if (results) {
-          const locked = results.filter((r: any) => r.student_password);
-          const matched = locked.filter((r: any) => r.student_password === password);
-          if (matched.length > 0) {
-            for (const r of matched) {
-              if (r.result_image_url) {
-                const kb: any = { inline_keyboard: [] };
-                if (r.answer_image_url) {
-                  kb.inline_keyboard.push([{ text: "📝 Show Answer", callback_data: `answer_final_${r.id}` }]);
-                }
-                await sendPhoto(chatId, r.result_image_url, `🔓 Final Result - ${student?.name}`, { reply_markup: kb });
-              }
-            }
-            chatStates.delete(chatId);
-          } else {
-            await send(chatId, `❌ Incorrect password. Try again:`);
-          }
-        }
-        return new Response("OK");
-      }
-
-      // Report Card - awaiting ID
-      if (state.mode === "card_await_id") {
-        const idNum = text.match(/^(\d+)$/);
-        if (idNum) {
-          const studentId = idNum[1];
-          const { data: student } = await supabase.from("students").select("*").eq("id", parseInt(studentId)).single();
-          if (!student) {
-            await send(chatId, `❌ Student with ID ${studentId} not found. Try again:`);
-            return new Response("OK");
-          }
-          await handleReportCard(chatId, studentId);
-          chatStates.delete(chatId);
-          return new Response("OK");
-        }
-        await send(chatId, `⚠️ Please type only the ID number (e.g. <code>5</code>):`);
-        return new Response("OK");
-      }
-
-      // Report Card - awaiting password
-      if (state.mode === "card_await_password" && state.studentId) {
-        const password = text;
-        const { data: student } = await supabase.from("students").select("*").eq("id", parseInt(state.studentId)).single();
-        const { data: card } = await supabase.from("report_cards").select("*").eq("student_id", state.studentId).single();
-        
-        if (card && card.card_password === password) {
-          await sendReportCardDetails(chatId, card, student, state.studentId);
-          chatStates.delete(chatId);
-        } else {
-          await send(chatId, `❌ Incorrect password. Try again:`);
-        }
-        return new Response("OK");
-      }
-
-      // Ministry results - awaiting ID
-      if (state.mode === "results_await_id") {
-        // Handle ministry result lookup
-        await send(chatId, `📊 Looking up ministry results for ID <b>${text}</b>...\n\n📱 View full results on the portal:`, {
-          reply_markup: { inline_keyboard: [
-            [{ text: "🌐 View Online", url: `${PORTAL_URL}?tab=results` }],
-            [{ text: "◀️ Main Menu", callback_data: "menu_start" }],
-          ]},
-        });
-        chatStates.delete(chatId);
-        return new Response("OK");
-      }
-
-      // Students search mode
-      if (state.mode === "students_search") {
-        // Check if it's a number
-        const idNum = text.match(/^(\d{1,2})$/);
-        if (idNum) {
-          const id = parseInt(idNum[1]);
-          const { data: student } = await supabase.from("students").select("*").eq("id", id).single();
-          if (!student) {
-            await send(chatId, `❌ No student found with ID ${id}. Try again:`);
-            return new Response("OK");
-          }
-          if (student.image_url) {
-            const info = `👤 <b>${student.name}</b>\n🔤 ${student.english_name}\n🆔 ID: ${student.id}\n📚 Section: ${student.section || 'N/A'}\n🎂 Age: ${student.age || 'N/A'}\n⚧ Gender: ${student.gender || 'N/A'}`;
-            await sendPhoto(chatId, student.image_url, info);
-          }
-          await send(chatId, `Quick actions for ${student.name}:`, {
-            reply_markup: { inline_keyboard: [
-              [{ text: "📝 Mid Results", callback_data: `quick_mid_${student.id}` }, { text: "📋 Final Results", callback_data: `quick_final_${student.id}` }],
-              [{ text: "🎓 Report Card", callback_data: `quick_card_${student.id}` }],
-              [{ text: "◀️ Main Menu", callback_data: "menu_start" }],
-            ]},
-          });
-          return new Response("OK");
-        }
-
-        // Name search
-        if (text.length >= 2) {
-          const { data: students } = await supabase
-            .from("students").select("*")
-            .or(`name.ilike.%${text}%,english_name.ilike.%${text}%`);
-          if (students && students.length > 0) {
-            const limited = students.slice(0, 5);
-            let msg = `🔍 Found ${students.length} student(s):\n\n`;
-            for (const s of limited) {
-              msg += `🆔 <b>${s.id}</b> - ${s.name} (${s.english_name})\n`;
-            }
-            if (students.length > 5) msg += `\n... and ${students.length - 5} more`;
-            msg += `\n\nType the ID number to see details.`;
-            await send(chatId, msg);
-          } else {
-            await send(chatId, `❌ No students found matching "<b>${text}</b>". Try again:`);
-          }
-          return new Response("OK");
-        }
-      }
-    }
-
-    // === FALLBACK FOR CALLBACKS NOT HANDLED ===
-    // Answer callback for mid/final answer images
+    // Answer image callbacks
     const answerMid = callbackData?.match(/^answer_mid_(.+)$/);
     if (answerMid) {
-      const resultId = answerMid[1];
-      const { data: result } = await extSupabase.from("mid_results").select("*").eq("id", resultId).single();
-      if (result?.answer_image_url) {
-        await sendPhoto(chatId, result.answer_image_url, `📝 Answer Key`);
-      } else {
-        await send(chatId, `❌ No answer key available.`);
-      }
+      const { data: result } = await extSupabase.from("mid_results").select("*").eq("id", answerMid[1]).single();
+      if (result?.answer_image_url) await sendPhoto(chatId, result.answer_image_url, `📝 Answer Key`);
+      else await send(chatId, `❌ No answer key available.`);
       return new Response("OK");
     }
 
     const answerFinal = callbackData?.match(/^answer_final_(.+)$/);
     if (answerFinal) {
-      const resultId = answerFinal[1];
-      const { data: result } = await extSupabase.from("final_results").select("*").eq("id", resultId).single();
-      if (result?.answer_image_url) {
-        await sendPhoto(chatId, result.answer_image_url, `📝 Answer Key`);
-      } else {
-        await send(chatId, `❌ No answer key available.`);
-      }
+      const { data: result } = await extSupabase.from("final_results").select("*").eq("id", answerFinal[1]).single();
+      if (result?.answer_image_url) await sendPhoto(chatId, result.answer_image_url, `📝 Answer Key`);
+      else await send(chatId, `❌ No answer key available.`);
       return new Response("OK");
     }
 
-    // Handle pure number without state - show student
+    // Ministry result callback (from name search)
+    const ministrySelect = callbackData?.match(/^ministry_(\d+)$/);
+    if (ministrySelect) {
+      const ministryId = ministrySelect[1];
+      await send(chatId, `📊 Ministry Result for ID <b>${ministryId}</b>\n\n📱 View full result on the portal:`, {
+        reply_markup: { inline_keyboard: [
+          [{ text: "🌐 View Result Online", url: `${PORTAL_URL}?tab=results&id=${ministryId}` }],
+          [{ text: "◀️ Main Menu", callback_data: "menu_start" }],
+        ]},
+      });
+      return new Response("OK");
+    }
+
+    // ============ FALLBACK: plain number = student lookup ============
     const idMatch = text.match(/^(\d{1,2})$/);
     if (idMatch) {
       const id = parseInt(idMatch[1]);
       const { data: student } = await supabase.from("students").select("*").eq("id", id).single();
-      if (!student) {
-        await send(chatId, `❌ No student found with ID ${id}.`);
-        return new Response("OK");
-      }
+      if (!student) { await send(chatId, `❌ No student found with ID ${id}.`); return new Response("OK"); }
       if (student.image_url) {
         const info = `👤 <b>${student.name}</b>\n🔤 ${student.english_name}\n🆔 ID: ${student.id}\n📚 Section: ${student.section || 'N/A'}\n🎂 Age: ${student.age || 'N/A'}\n⚧ Gender: ${student.gender || 'N/A'}`;
         await sendPhoto(chatId, student.image_url, info);
@@ -558,59 +383,75 @@ serve(async (req) => {
 
     // Name search fallback
     if (text.length >= 2 && !text.startsWith("/")) {
-      const { data: students } = await supabase
-        .from("students").select("*")
-        .or(`name.ilike.%${text}%,english_name.ilike.%${text}%`);
-      if (students && students.length > 0) {
-        const limited = students.slice(0, 5);
-        let msg = `🔍 Found ${students.length} student(s):\n\n`;
-        for (const s of limited) {
-          msg += `🆔 <b>${s.id}</b> - ${s.name} (${s.english_name})\n`;
-        }
-        if (students.length > 5) msg += `\n... and ${students.length - 5} more`;
-        msg += `\n\nType the ID number to see details.`;
-        await send(chatId, msg);
-      } else {
-        await send(chatId, `❌ No students found matching "<b>${text}</b>".\n\nTry /start to see available options.`);
-      }
+      await handleStudentSearch(chatId, text);
       return new Response("OK");
     }
 
-    // Default
     await send(chatId, `I didn't understand that. Try /start to see available options.`);
     return new Response("OK");
 
-    // === HELPER FUNCTIONS ===
-    async function handleMidResults(cid: number, studentId: string) {
-      const { data: student } = await supabase.from("students").select("*").eq("id", parseInt(studentId)).single();
-      const { data: results } = await extSupabase.from("mid_results").select("*").eq("student_id", studentId);
+    // ============ HANDLER FUNCTIONS ============
 
-      if (!results || results.length === 0) {
-        await send(cid, `📝 No mid exam results found for <b>${student?.name || `ID ${studentId}`}</b>.`, {
-          reply_markup: { inline_keyboard: [[{ text: "◀️ Main Menu", callback_data: "menu_start" }]] },
+    async function handleStudentSearch(cid: number, query: string) {
+      const idNum = query.match(/^(\d{1,2})$/);
+      if (idNum) {
+        const id = parseInt(idNum[1]);
+        const { data: student } = await supabase.from("students").select("*").eq("id", id).single();
+        if (!student) { await send(cid, `❌ No student found with ID ${id}.`); return; }
+        if (student.image_url) {
+          const info = `👤 <b>${student.name}</b>\n🔤 ${student.english_name}\n🆔 ID: ${student.id}\n📚 Section: ${student.section || 'N/A'}\n🎂 Age: ${student.age || 'N/A'}\n⚧ Gender: ${student.gender || 'N/A'}`;
+          await sendPhoto(cid, student.image_url, info);
+        }
+        await send(cid, `Quick actions for ${student.name}:`, {
+          reply_markup: { inline_keyboard: [
+            [{ text: "📝 Mid", callback_data: `quick_mid_${student.id}` }, { text: "📋 Final", callback_data: `quick_final_${student.id}` }],
+            [{ text: "🎓 Report Card", callback_data: `quick_card_${student.id}` }],
+            [{ text: "◀️ Main Menu", callback_data: "menu_start" }],
+          ]},
         });
         return;
       }
 
-      const hasLocked = results.some((r: any) => r.student_password);
-      const unlocked = results.filter((r: any) => !r.student_password);
+      if (query.length >= 2) {
+        const { data: students } = await supabase.from("students").select("*")
+          .or(`name.ilike.%${query}%,english_name.ilike.%${query}%`);
+        if (students && students.length > 0) {
+          const limited = students.slice(0, 5);
+          let msg = `🔍 Found ${students.length} student(s):\n\n`;
+          for (const s of limited) msg += `🆔 <b>${s.id}</b> - ${s.name} (${s.english_name})\n`;
+          if (students.length > 5) msg += `\n... and ${students.length - 5} more`;
+          msg += `\n\nType the ID number to see details.`;
+          await send(cid, msg);
+        } else {
+          await send(cid, `❌ No students found matching "<b>${query}</b>".`);
+        }
+      }
+    }
 
+    async function handleMidResults(cid: number, studentId: string) {
+      const { data: student } = await supabase.from("students").select("*").eq("id", parseInt(studentId)).single();
+      if (!student) { await send(cid, `❌ Student with ID ${studentId} not found.`); return; }
+      const { data: results } = await extSupabase.from("mid_results").select("*").eq("student_id", studentId);
+      if (!results || results.length === 0) {
+        await send(cid, `📝 No mid results found for <b>${student.name}</b>.`, {
+          reply_markup: { inline_keyboard: [[{ text: "◀️ Main Menu", callback_data: "menu_start" }]] },
+        });
+        return;
+      }
+      const unlocked = results.filter((r: any) => !r.student_password);
+      const locked = results.filter((r: any) => r.student_password);
       for (const r of unlocked) {
         if (r.result_image_url) {
           const kb: any = { inline_keyboard: [] };
-          if (r.answer_image_url) {
-            kb.inline_keyboard.push([{ text: "📝 Show Answer", callback_data: `answer_mid_${r.id}` }]);
-          }
-          await sendPhoto(cid, r.result_image_url, `📝 Mid Result - ${student?.name}`, { reply_markup: kb });
+          if (r.answer_image_url) kb.inline_keyboard.push([{ text: "📝 Show Answer", callback_data: `answer_mid_${r.id}` }]);
+          await sendPhoto(cid, r.result_image_url, `📝 Mid Result - ${student.name}`, { reply_markup: kb });
         }
       }
-
-      if (hasLocked) {
-        const lockedCount = results.filter((r: any) => r.student_password).length;
-        chatStates.set(cid, { mode: "mid_await_password", studentId });
-        await send(cid, `🔒 ${lockedCount} result(s) are password protected.\n\nType the password:`);
+      if (locked.length > 0) {
+        // Ask for password with force_reply, embed student_id for context
+        await sendForceReply(cid, `${CTX_MID_PW}\nStudent: ${student.name}\n\nType the password:\n\nstudent_id:${studentId}`);
       } else {
-        await send(cid, `✅ ${results.length} mid result(s) for ${student?.name}`, {
+        await send(cid, `✅ ${results.length} mid result(s) for ${student.name}`, {
           reply_markup: { inline_keyboard: [[{ text: "◀️ Main Menu", callback_data: "menu_start" }]] },
         });
       }
@@ -618,34 +459,27 @@ serve(async (req) => {
 
     async function handleFinalResults(cid: number, studentId: string) {
       const { data: student } = await supabase.from("students").select("*").eq("id", parseInt(studentId)).single();
+      if (!student) { await send(cid, `❌ Student with ID ${studentId} not found.`); return; }
       const { data: results } = await extSupabase.from("final_results").select("*").eq("student_id", studentId);
-
       if (!results || results.length === 0) {
-        await send(cid, `📋 No final exam results found for <b>${student?.name || `ID ${studentId}`}</b>.`, {
+        await send(cid, `📋 No final results found for <b>${student.name}</b>.`, {
           reply_markup: { inline_keyboard: [[{ text: "◀️ Main Menu", callback_data: "menu_start" }]] },
         });
         return;
       }
-
-      const hasLocked = results.some((r: any) => r.student_password);
       const unlocked = results.filter((r: any) => !r.student_password);
-
+      const locked = results.filter((r: any) => r.student_password);
       for (const r of unlocked) {
         if (r.result_image_url) {
           const kb: any = { inline_keyboard: [] };
-          if (r.answer_image_url) {
-            kb.inline_keyboard.push([{ text: "📝 Show Answer", callback_data: `answer_final_${r.id}` }]);
-          }
-          await sendPhoto(cid, r.result_image_url, `📋 Final Result - ${student?.name}`, { reply_markup: kb });
+          if (r.answer_image_url) kb.inline_keyboard.push([{ text: "📝 Show Answer", callback_data: `answer_final_${r.id}` }]);
+          await sendPhoto(cid, r.result_image_url, `📋 Final Result - ${student.name}`, { reply_markup: kb });
         }
       }
-
-      if (hasLocked) {
-        const lockedCount = results.filter((r: any) => r.student_password).length;
-        chatStates.set(cid, { mode: "final_await_password", studentId });
-        await send(cid, `🔒 ${lockedCount} result(s) are password protected.\n\nType the password:`);
+      if (locked.length > 0) {
+        await sendForceReply(cid, `${CTX_FINAL_PW}\nStudent: ${student.name}\n\nType the password:\n\nstudent_id:${studentId}`);
       } else {
-        await send(cid, `✅ ${results.length} final result(s) for ${student?.name}`, {
+        await send(cid, `✅ ${results.length} final result(s) for ${student.name}`, {
           reply_markup: { inline_keyboard: [[{ text: "◀️ Main Menu", callback_data: "menu_start" }]] },
         });
       }
@@ -653,22 +487,100 @@ serve(async (req) => {
 
     async function handleReportCard(cid: number, studentId: string) {
       const { data: student } = await supabase.from("students").select("*").eq("id", parseInt(studentId)).single();
+      if (!student) { await send(cid, `❌ Student with ID ${studentId} not found.`); return; }
       const { data: card } = await supabase.from("report_cards").select("*").eq("student_id", studentId).single();
-
       if (!card) {
-        await send(cid, `🎓 No report card found for <b>${student?.name || `ID ${studentId}`}</b>.`, {
+        await send(cid, `🎓 No report card found for <b>${student.name}</b>.`, {
+          reply_markup: { inline_keyboard: [[{ text: "◀️ Main Menu", callback_data: "menu_start" }]] },
+        });
+        return;
+      }
+      if (card.card_password) {
+        await sendForceReply(cid, `${CTX_CARD_PW}\nStudent: ${student.name}\n\nType the password:\n\nstudent_id:${studentId}`);
+        return;
+      }
+      await sendReportCardDetails(cid, card, student, studentId);
+    }
+
+    async function handlePasswordUnlock(cid: number, type: string, studentId: string, password: string) {
+      const { data: student } = await supabase.from("students").select("*").eq("id", parseInt(studentId)).single();
+      const table = type === "mid" ? "mid_results" : "final_results";
+      const emoji = type === "mid" ? "📝" : "📋";
+      const { data: results } = await extSupabase.from(table).select("*").eq("student_id", studentId);
+      if (!results) { await send(cid, `❌ No results found.`); return; }
+      const locked = results.filter((r: any) => r.student_password);
+      const matched = locked.filter((r: any) => r.student_password === password);
+      if (matched.length === 0) {
+        const ctxPw = type === "mid" ? CTX_MID_PW : CTX_FINAL_PW;
+        await sendForceReply(cid, `❌ Incorrect password. Try again.\n\n${ctxPw}\n\nstudent_id:${studentId}`);
+        return;
+      }
+      for (const r of matched) {
+        if (r.result_image_url) {
+          const kb: any = { inline_keyboard: [] };
+          if (r.answer_image_url) kb.inline_keyboard.push([{ text: "📝 Show Answer", callback_data: `answer_${type}_${r.id}` }]);
+          await sendPhoto(cid, r.result_image_url, `🔓 ${emoji} ${type === 'mid' ? 'Mid' : 'Final'} Result - ${student?.name}`, { reply_markup: kb });
+        }
+      }
+    }
+
+    async function handleCardPasswordUnlock(cid: number, studentId: string, password: string) {
+      const { data: student } = await supabase.from("students").select("*").eq("id", parseInt(studentId)).single();
+      const { data: card } = await supabase.from("report_cards").select("*").eq("student_id", studentId).single();
+      if (!card) { await send(cid, `🎓 No report card found.`); return; }
+      if (card.card_password && card.card_password !== password) {
+        await sendForceReply(cid, `❌ Incorrect password. Try again.\n\n${CTX_CARD_PW}\n\nstudent_id:${studentId}`);
+        return;
+      }
+      await sendReportCardDetails(cid, card, student, studentId);
+    }
+
+    async function handleMinistryNameSearch(cid: number, nameQuery: string) {
+      // Search students by name
+      const { data: students } = await supabase.from("students").select("*")
+        .or(`name.ilike.%${nameQuery}%,english_name.ilike.%${nameQuery}%`);
+      
+      if (!students || students.length === 0) {
+        await send(cid, `❌ No students found matching "<b>${nameQuery}</b>".\n\nTry again with a different spelling.`, {
           reply_markup: { inline_keyboard: [[{ text: "◀️ Main Menu", callback_data: "menu_start" }]] },
         });
         return;
       }
 
-      if (card.card_password) {
-        chatStates.set(cid, { mode: "card_await_password", studentId });
-        await send(cid, `🔒 Report card for <b>${student?.name}</b> is password protected.\n\nType the password:`);
-        return;
+      if (students.length === 1) {
+        const s = students[0];
+        await send(cid, `📊 Found: <b>${s.name}</b> (${s.english_name})\nID: ${s.id}\n\n📱 View result on portal:`, {
+          reply_markup: { inline_keyboard: [
+            [{ text: "🌐 View Ministry Result", url: `${PORTAL_URL}?tab=results` }],
+            [{ text: "◀️ Main Menu", callback_data: "menu_start" }],
+          ]},
+        });
+      } else {
+        const limited = students.slice(0, 5);
+        let msg = `🔍 Found ${students.length} student(s):\n\n`;
+        for (const s of limited) {
+          msg += `🆔 <b>${s.id}</b> - ${s.name} (${s.english_name})\n`;
+        }
+        msg += `\n📱 View ministry results on the portal:`;
+        await send(cid, msg, {
+          reply_markup: { inline_keyboard: [
+            [{ text: "🌐 View Results Online", url: `${PORTAL_URL}?tab=results` }],
+            [{ text: "◀️ Main Menu", callback_data: "menu_start" }],
+          ]},
+        });
       }
+    }
 
-      await sendReportCardDetails(cid, card, student, studentId);
+    async function handleTextbookContent(cid: number, tbKey: string, category: string, numberInput: string) {
+      const catLabel = category === 'activities' ? 'Activity' : category === 'exercises' ? 'Exercise' : 'Review Exercise';
+      const searchId = `${catLabel} ${numberInput.trim()}`;
+      
+      await send(cid, `📚 <b>${searchId}</b> - ${tbKey}\n\n📱 Open the textbook on the portal to view the full content with the Content Finder:`, {
+        reply_markup: { inline_keyboard: [
+          [{ text: "🌐 Open Textbook", url: `${PORTAL_URL}?tab=textbooks` }],
+          [{ text: "◀️ Back", callback_data: `tb_${tbKey}` }],
+        ]},
+      });
     }
 
     async function sendReportCardDetails(cid: number, card: any, student: any, studentId: string) {
@@ -681,29 +593,21 @@ serve(async (req) => {
 
       if (subjects && typeof subjects === 'object') {
         msg += `📚 <b>Subjects:</b>\n`;
-        let totalAvg = 0;
-        let subCount = 0;
-        let failCount = 0;
-
+        let totalAvg = 0, subCount = 0, failCount = 0;
         for (const subj of SUBJECTS) {
           const marks = subjects[subj];
           if (!marks) continue;
           const vals = ['1st', '2nd', '3rd', '4th'].map((q: string) => marks[q]).filter((v: any) => v != null) as number[];
           if (vals.length === 0) continue;
           const avg = vals.reduce((a: number, b: number) => a + b, 0) / vals.length;
-          totalAvg += avg;
-          subCount++;
-          if (avg < 60) failCount++;
-          const status = avg < 60 ? '🔴' : '🟢';
-          msg += `${status} ${subj}: ${avg.toFixed(1)}\n`;
+          totalAvg += avg; subCount++; if (avg < 60) failCount++;
+          msg += `${avg < 60 ? '🔴' : '🟢'} ${subj}: ${avg.toFixed(1)}\n`;
         }
-
         if (subCount > 0) {
           const overallAvg = totalAvg / subCount;
-          msg += `\n📊 <b>Total Average:</b> ${overallAvg.toFixed(1)}`;
+          msg += `\n📊 <b>Average:</b> ${overallAvg.toFixed(1)}`;
           msg += `\n📈 <b>Rank:</b> ${card.rank ? Object.values(card.rank).filter((v: any) => v != null)[0] || 'N/A' : 'N/A'}`;
           if (card.total_students) msg += ` / ${card.total_students}`;
-
           const promoted = failCount < 2;
           const gradeNum = card.grade ? parseInt(card.grade.replace(/\D/g, '')) : 9;
           msg += `\n\n${promoted ? `✅ <b>Promoted to Grade ${gradeNum + 1}</b>` : `❌ <b>Detained in Grade ${gradeNum}</b>`}`;
