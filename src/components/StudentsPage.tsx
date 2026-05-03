@@ -68,7 +68,7 @@ const StudentsPage = ({ onNavigate }: StudentsPageProps) => {
         return matchesSearch && matchesGender && matchesSection;
       })
       .sort((a, b) => a.englishName.localeCompare(b.englishName));
-  }, [searchQuery, genderFilter, sectionFilter]);
+  }, [searchQuery, genderFilter, sectionFilter, allStudents]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
