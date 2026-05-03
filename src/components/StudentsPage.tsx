@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, Filter } from 'lucide-react';
-import { students as allStudents, Student } from '@/data/students';
+import { Search, User, Filter, Loader2 } from 'lucide-react';
+import { students as fallbackStudents, Student } from '@/data/students';
+import { supabase } from '@/integrations/supabase/client';
 import StudentDetailModal from './StudentDetailModal';
 
 interface StudentsPageProps {
