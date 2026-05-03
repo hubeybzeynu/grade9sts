@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, Filter } from 'lucide-react';
-import { students as allStudents, Student } from '@/data/students';
+import { Search, User, Filter, Loader2 } from 'lucide-react';
+import { students as fallbackStudents, Student } from '@/data/students';
+import { supabase } from '@/integrations/supabase/client';
 import StudentDetailModal from './StudentDetailModal';
 
 interface StudentsPageProps {
@@ -15,6 +16,46 @@ const StudentsPage = ({ onNavigate }: StudentsPageProps) => {
   const [genderFilter, setGenderFilter] = useState<'all' | 'Male' | 'Female'>('all');
   const [sectionFilter, setSectionFilter] = useState<string>('all');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [allStudents, setAllStudents] = useState<Student[]>(fallbackStudents);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .order('english_name', { ascending: true });
+      if (!mounted) return;
+      if (!error && data && data.length > 0) {
+        const mapped: Student[] = data.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          englishName: s.english_name,
+          age: s.age ?? 0,
+          gender: (s.gender === 'Male' || s.gender === 'Female') ? s.gender : 'Male',
+          section: s.section ?? '',
+          telegram: s.telegram ?? undefined,
+          instagram: s.instagram ?? undefined,
+          imageUrl: s.image_url ?? '',
+          downloadUrl: s.download_url ?? s.image_url ?? '',
+        }));
+        setAllStudents(mapped);
+      }
+      setLoading(false);
+    };
+    load();
+
+    const channel = supabase
+      .channel('students-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, () => load())
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const filteredStudents = useMemo(() => {
     return allStudents
@@ -27,7 +68,7 @@ const StudentsPage = ({ onNavigate }: StudentsPageProps) => {
         return matchesSearch && matchesGender && matchesSection;
       })
       .sort((a, b) => a.englishName.localeCompare(b.englishName));
-  }, [searchQuery, genderFilter, sectionFilter]);
+  }, [searchQuery, genderFilter, sectionFilter, allStudents]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
