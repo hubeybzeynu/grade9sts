@@ -451,7 +451,7 @@ const StudentDetailModal = ({ student, onClose }: Props) => {
                   className="btn-gradient w-full flex items-center justify-center gap-2"
                 >
                   <Download className="w-5 h-5" />
-                  Download Photo
+                  Allow download to save photo
                 </motion.button>
               </div>
             )}

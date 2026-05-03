@@ -144,6 +144,24 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
     setVerifying(false);
     if (data) {
       setVerifiedStudent(data);
+      // Auto-search for results immediately after verification
+      const studentResults = filteredResults.filter(r => r.student_id === String(data.id));
+      if (studentResults.length > 0) {
+        const found = studentResults[0];
+        const key = getResultKey(found);
+        if (found.student_password && !unlockedKeys.has(key)) {
+          setPendingResult(found);
+          setShowPasswordPrompt(true);
+          setPassword('');
+        } else {
+          setCurrentResult(found);
+          setShowResult(true);
+          setShowAnswer(false);
+          setNavLocked(false);
+        }
+      } else {
+        setError('No results found for this student. Results may not be uploaded yet.');
+      }
     } else {
       setError('Student not found. Check your number.');
     }
@@ -152,10 +170,10 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
   const handleSearch = () => {
     setError('');
     if (!verifiedStudent) {
-      setError('Please verify your student number first');
+      // Auto-verify first
+      handleVerify();
       return;
     }
-    // Search by student_id matching the directory ID as string
     const studentResults = filteredResults.filter(r => r.student_id === String(verifiedStudent.id));
     if (studentResults.length > 0) {
       const found = studentResults[0];
@@ -245,22 +263,15 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
         initial="hidden"
         animate="visible"
         variants={containerVariants}
-        className="min-h-screen pt-28 pb-12 px-4"
+        className="min-h-screen pt-16 pb-20 px-4"
       >
         <div className="max-w-2xl mx-auto">
-          <motion.div variants={itemVariants} className="text-center mb-10">
-            <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center mx-auto mb-6`}>
-              <Icon className="w-10 h-10 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold mb-4">
-              <span className="gradient-text">{title}</span> Results
-            </h1>
-            <p className="text-muted-foreground">
-              Enter your student ID to view your {title.toLowerCase()} results
-            </p>
-          </motion.div>
+          <div className="py-4 mb-2">
+            <h1 className="text-xl font-bold text-foreground">{title} Results</h1>
+            <p className="text-muted-foreground text-xs mt-0.5">Enter your student number to view results</p>
+          </div>
 
-          <motion.div variants={itemVariants} className="glass-card p-8 mb-6">
+          <motion.div variants={itemVariants} className="bg-card rounded-2xl p-5 mb-4 border border-border shadow-sm">
             {loading ? (
               <div className="text-center py-8">
                 <motion.div
@@ -326,7 +337,7 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
                     type="number"
                     placeholder="Enter your student number (e.g., 5)"
                     value={studentId}
-                    onChange={(e) => { setStudentId(e.target.value); setVerifiedStudent(null); }}
+                    onChange={(e) => { setStudentId(e.target.value); setVerifiedStudent(null); setShowResult(false); setCurrentResult(null); setError(''); }}
                     onKeyDown={(e) => e.key === 'Enter' && (verifiedStudent ? handleSearch() : handleVerify())}
                     className={`input-glass pl-12 ${error ? 'border-destructive focus:ring-destructive/50' : ''}`}
                   />
@@ -367,12 +378,12 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
                       whileTap={{ scale: 0.98 }}
                       onClick={handleVerify}
                       disabled={verifying}
-                      className="btn-gradient w-full flex items-center justify-center gap-2"
+                      className="btn-gradient w-full flex items-center justify-center gap-2 py-2.5 text-sm"
                     >
                       {verifying ? (
-                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
                       ) : (
-                        <UserCheck className="w-5 h-5" />
+                        <UserCheck className="w-4 h-4" />
                       )}
                       Verify Student
                     </motion.button>
@@ -381,9 +392,9 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={handleSearch}
-                      className="btn-gradient w-full flex items-center justify-center gap-2"
+                      className="btn-gradient w-full flex items-center justify-center gap-2 py-2.5 text-sm"
                     >
-                      <Search className="w-5 h-5" />
+                      <Search className="w-4 h-4" />
                       View Result
                     </motion.button>
                   )}
