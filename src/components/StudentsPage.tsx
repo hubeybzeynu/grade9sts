@@ -56,6 +56,9 @@ const StudentsPage = ({ onNavigate }: StudentsPageProps) => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const filteredStudents = useMemo(() => {
+    return allStudents
       .filter((student) => {
         const matchesSearch =
           student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
