@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Search, Download, ChevronLeft, ChevronRight, Printer, Lock } from 'lucide-react';
+import { FileText, Search, Download, ChevronLeft, ChevronRight, Printer, Lock, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { students } from '@/data/students';
 
@@ -55,6 +55,9 @@ const ReportCardPage = () => {
   const [cardPwdInput, setCardPwdInput] = useState('');
   const [cardPwdError, setCardPwdError] = useState('');
   const [unlockedCardIds, setUnlockedCardIds] = useState<Set<string>>(new Set());
+  // Student verification (like ExamResultPage)
+  const [verifiedStudent, setVerifiedStudent] = useState<{ id: number; name: string; english_name: string; image_url: string | null } | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   // Realtime subscription
   useEffect(() => {
@@ -120,9 +123,39 @@ const ReportCardPage = () => {
     if (idx >= 0) setCurrentIndex(idx);
   };
 
+  const handleVerify = async () => {
+    setError('');
+    setVerifiedStudent(null);
+    setReportCard(null);
+    if (!studentId.trim()) {
+      setError('Please enter your student number');
+      return;
+    }
+    const idNum = parseInt(studentId.trim());
+    if (isNaN(idNum)) {
+      setError('Please enter a valid number');
+      return;
+    }
+    setVerifying(true);
+    const { data } = await supabase
+      .from('students')
+      .select('id, name, english_name, image_url')
+      .eq('id', idNum)
+      .single();
+    setVerifying(false);
+    if (data) {
+      setVerifiedStudent(data);
+    } else {
+      setError('Student not found. Check your number.');
+    }
+  };
+
   const handleSearch = () => {
-    if (!studentId.trim()) return;
-    fetchCard(studentId.trim());
+    if (!verifiedStudent) {
+      handleVerify();
+      return;
+    }
+    fetchCard(String(verifiedStudent.id));
   };
 
   const navigateCard = (dir: number) => {
@@ -199,34 +232,76 @@ const ReportCardPage = () => {
     : `Promoted to ${reportCard?.promoted_to ? reportCard.promoted_to.replace(/^grade\s*/i, 'Grade ') : `Grade ${gradeNum + 1}`}`;
 
   return (
-    <div className="pt-24 pb-12 px-4 min-h-screen">
+    <div className="pt-16 pb-20 px-4 min-h-screen">
       <div className="max-w-5xl mx-auto">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-2">📋 Report Card</h1>
-          <p className="text-muted-foreground">View your student report card</p>
-        </motion.div>
+        <div className="py-4 mb-2">
+          <h1 className="text-xl font-bold text-foreground">Report Card</h1>
+          <p className="text-muted-foreground text-xs mt-0.5">View your student report card</p>
+        </div>
 
         {/* Search */}
         {!reportCard && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-md mx-auto mb-8">
-            <div className="glass-card p-6">
+            <div className="glass-card p-5">
               <label className="block text-sm font-medium mb-2">Enter Student Directory ID (1-98)</label>
-              <div className="flex gap-2">
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
-                  type="text"
+                  type="number"
                   value={studentId}
-                  onChange={(e) => setStudentId(e.target.value)}
+                  onChange={(e) => {
+                    setStudentId(e.target.value);
+                    setVerifiedStudent(null);
+                    setError('');
+                  }}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   placeholder="e.g. 5"
-                  className="flex-1 px-4 py-3 rounded-xl bg-background/50 border border-border focus:border-primary focus:outline-none"
+                  className="w-full pl-10 pr-3 py-2.5 text-sm rounded-xl bg-background/50 border border-border focus:border-primary focus:outline-none"
                 />
-                <button onClick={handleSearch} className="btn-primary px-6 py-3 rounded-xl flex items-center gap-2">
-                  <Search className="w-4 h-4" />
-                  Search
-                </button>
               </div>
-              {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
-              {loading && <p className="text-muted-foreground text-sm mt-3">Loading...</p>}
+
+              {verifiedStudent && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-3 mb-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20"
+                >
+                  <UserCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+                  {verifiedStudent.image_url && (
+                    <img src={verifiedStudent.image_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{verifiedStudent.english_name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{verifiedStudent.name}</p>
+                  </div>
+                </motion.div>
+              )}
+
+              {error && <p className="text-destructive text-xs mb-2">{error}</p>}
+              {loading && <p className="text-muted-foreground text-xs mb-2">Loading report card...</p>}
+
+              {!verifiedStudent ? (
+                <button
+                  onClick={handleVerify}
+                  disabled={verifying}
+                  className="btn-gradient w-full flex items-center justify-center gap-2 py-2.5 text-sm rounded-xl"
+                >
+                  {verifying ? (
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} className="w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                  ) : (
+                    <UserCheck className="w-4 h-4" />
+                  )}
+                  Verify Student
+                </button>
+              ) : (
+                <button
+                  onClick={handleSearch}
+                  className="btn-gradient w-full flex items-center justify-center gap-2 py-2.5 text-sm rounded-xl"
+                >
+                  <Search className="w-4 h-4" />
+                  View Report Card
+                </button>
+              )}
             </div>
           </motion.div>
         )}
@@ -466,7 +541,7 @@ const ReportCardPage = () => {
                     <Printer className="w-4 h-4" /> Print
                   </button>
                   <button
-                    onClick={() => { setReportCard(null); setStudentId(''); setSearched(false); }}
+                    onClick={() => { setReportCard(null); setStudentId(''); setSearched(false); setVerifiedStudent(null); }}
                     className="btn-ghost px-4 py-2 rounded-xl"
                   >
                     Search Another

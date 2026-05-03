@@ -1,8 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, Filter, Loader2 } from 'lucide-react';
-import { students as fallbackStudents, Student } from '@/data/students';
-import { supabase } from '@/integrations/supabase/client';
+import { Search, User, Filter } from 'lucide-react';
+import { students as allStudents, Student } from '@/data/students';
 import StudentDetailModal from './StudentDetailModal';
 
 interface StudentsPageProps {
@@ -16,46 +15,6 @@ const StudentsPage = ({ onNavigate }: StudentsPageProps) => {
   const [genderFilter, setGenderFilter] = useState<'all' | 'Male' | 'Female'>('all');
   const [sectionFilter, setSectionFilter] = useState<string>('all');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [allStudents, setAllStudents] = useState<Student[]>(fallbackStudents);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      const { data, error } = await supabase
-        .from('students')
-        .select('*')
-        .order('english_name', { ascending: true });
-      if (!mounted) return;
-      if (!error && data && data.length > 0) {
-        const mapped: Student[] = data.map((s: any) => ({
-          id: s.id,
-          name: s.name,
-          englishName: s.english_name,
-          age: s.age ?? 0,
-          gender: (s.gender === 'Male' || s.gender === 'Female') ? s.gender : 'Male',
-          section: s.section ?? '',
-          telegram: s.telegram ?? undefined,
-          instagram: s.instagram ?? undefined,
-          imageUrl: s.image_url ?? '',
-          downloadUrl: s.download_url ?? s.image_url ?? '',
-        }));
-        setAllStudents(mapped);
-      }
-      setLoading(false);
-    };
-    load();
-
-    const channel = supabase
-      .channel('students-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, () => load())
-      .subscribe();
-
-    return () => {
-      mounted = false;
-      supabase.removeChannel(channel);
-    };
-  }, []);
 
   const filteredStudents = useMemo(() => {
     return allStudents
@@ -68,135 +27,115 @@ const StudentsPage = ({ onNavigate }: StudentsPageProps) => {
         return matchesSearch && matchesGender && matchesSection;
       })
       .sort((a, b) => a.englishName.localeCompare(b.englishName));
-  }, [searchQuery, genderFilter, sectionFilter, allStudents]);
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, scale: 0.9 },
-    visible: { opacity: 1, scale: 1 },
-  };
+  }, [searchQuery, genderFilter, sectionFilter]);
 
   return (
     <>
       <motion.div
-        initial="hidden"
-        animate="visible"
-        variants={containerVariants}
-        className="min-h-screen pt-28 pb-12 px-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="min-h-screen pt-16 pb-20 px-4"
       >
-        <div className="max-w-6xl mx-auto">
-          <motion.div variants={itemVariants} className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4">
-              <span className="gradient-text">Student</span> Directory
-            </h1>
-            <p className="text-muted-foreground">Explore student profiles from Grade 9</p>
-          </motion.div>
-
-          {/* Search & Filter Bar */}
-          <motion.div variants={itemVariants} className="glass-card p-4 mb-8 space-y-3">
-            <div className="flex flex-wrap gap-4 items-center justify-center">
-              <div className="relative flex-1 min-w-[250px] max-w-md">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search by name (Amharic or English)..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="input-glass pl-12"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setGenderFilter('all')}
-                  className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                    genderFilter === 'all' ? 'bg-primary text-primary-foreground' : 'bg-white/5 hover:bg-white/10'
-                  }`}
-                >
-                  <Filter className="w-4 h-4 inline mr-2" />All
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setGenderFilter('Male')}
-                  className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                    genderFilter === 'Male' ? 'bg-blue-500 text-white' : 'bg-white/5 hover:bg-white/10'
-                  }`}
-                >Male</motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setGenderFilter('Female')}
-                  className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                    genderFilter === 'Female' ? 'bg-pink-500 text-white' : 'bg-white/5 hover:bg-white/10'
-                  }`}
-                >Female</motion.button>
-              </div>
+        <div className="max-w-lg mx-auto">
+          <div className="py-4 mb-1">
+            <h1 className="text-xl font-bold text-foreground">Students</h1>
+            <div className="flex items-center gap-3 mt-1">
+              <span className="text-muted-foreground text-xs">
+                Total: <span className="font-semibold text-foreground">{filteredStudents.length}</span>
+              </span>
+              <span className="text-xs text-blue-400">
+                ♂ {filteredStudents.filter(s => s.gender === 'Male').length}
+              </span>
+              <span className="text-xs text-pink-400">
+                ♀ {filteredStudents.filter(s => s.gender === 'Female').length}
+              </span>
             </div>
+          </div>
 
-            {/* Section Filter */}
-            <div className="flex gap-2 justify-center">
-              {SECTIONS.map(sec => (
-                <motion.button
-                  key={sec}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSectionFilter(sec)}
-                  className={`px-4 py-2 rounded-xl font-medium transition-all text-sm ${
-                    sectionFilter === sec
-                      ? 'bg-accent text-accent-foreground'
-                      : 'bg-white/5 hover:bg-white/10'
-                  }`}
-                >
-                  {sec === 'all' ? 'All Sections' : sec}
-                </motion.button>
-              ))}
+          {/* Search */}
+          <div className="mb-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search by name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-card border border-border text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              />
             </div>
-          </motion.div>
+          </div>
 
-          {/* Student Grid */}
-          <motion.div variants={containerVariants} className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {filteredStudents.map((student) => (
-              <motion.div
-                key={student.id}
-                variants={itemVariants}
-                whileHover={{ scale: 1.03, y: -5 }}
-                onClick={() => setSelectedStudent(student)}
-                className="glass-card-hover p-4 cursor-pointer group"
+          {/* Filters */}
+          <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1">
+            {(['all', 'Male', 'Female'] as const).map((g) => (
+              <button
+                key={g}
+                onClick={() => setGenderFilter(g)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium shrink-0 transition-colors ${
+                  genderFilter === g
+                    ? g === 'Male' ? 'bg-blue-500 text-white'
+                    : g === 'Female' ? 'bg-pink-500 text-white'
+                    : 'bg-primary text-primary-foreground'
+                    : 'bg-card border border-border text-muted-foreground'
+                }`}
               >
-                <div className="relative mb-4 overflow-hidden rounded-xl">
-                  <img
-                    src={student.imageUrl}
-                    alt={student.englishName}
-                    className="w-full aspect-square object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className={`absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-bold ${
-                    student.gender === 'Male' ? 'bg-blue-500/80' : 'bg-pink-500/80'
-                  }`}>
-                    {student.gender}
-                  </div>
-                </div>
-                <h3 className="font-bold text-lg truncate">{student.name}</h3>
-                <p className="text-muted-foreground text-sm truncate">{student.englishName}</p>
-                <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                  <span>Section: {student.section}</span>
-                  <span>Age: {student.age}</span>
-                </div>
-              </motion.div>
+                {g === 'all' ? 'All' : g}
+              </button>
             ))}
-          </motion.div>
+            <div className="w-px bg-border mx-1 shrink-0" />
+            {SECTIONS.map(sec => (
+              <button
+                key={sec}
+                onClick={() => setSectionFilter(sec)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium shrink-0 transition-colors ${
+                  sectionFilter === sec
+                    ? 'bg-accent text-accent-foreground'
+                    : 'bg-card border border-border text-muted-foreground'
+                }`}
+              >
+                {sec === 'all' ? 'All' : sec}
+              </button>
+            ))}
+          </div>
+
+          {/* Student List */}
+          <div className="space-y-1.5">
+            {filteredStudents.map((student, i) => (
+              <motion.button
+                key={student.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setSelectedStudent(student)}
+                className="w-full flex items-center gap-3 p-2.5 bg-card rounded-xl border border-border active:bg-muted transition-colors"
+              >
+                <img
+                  src={student.imageUrl}
+                  alt={student.englishName}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+                <div className="flex-1 text-left min-w-0">
+                  <h3 className="text-sm font-medium text-foreground truncate">{student.englishName}</h3>
+                  <p className="text-[10px] text-muted-foreground truncate">{student.name}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                    student.gender === 'Male' ? 'bg-blue-500/15 text-blue-400' : 'bg-pink-500/15 text-pink-400'
+                  }`}>
+                    {student.section}
+                  </span>
+                </div>
+              </motion.button>
+            ))}
+          </div>
 
           {filteredStudents.length === 0 && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12">
-              <User className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
-              <p className="text-muted-foreground">No students found matching your criteria</p>
-            </motion.div>
+            <div className="text-center py-12">
+              <User className="w-12 h-12 mx-auto text-muted-foreground/40 mb-3" />
+              <p className="text-muted-foreground text-sm">No students found</p>
+            </div>
           )}
         </div>
       </motion.div>
