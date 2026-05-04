@@ -1,6 +1,5 @@
-// Edge function: AI math / physics / chemistry / trigonometry tutor.
-// Calls Lovable AI Gateway and returns a structured JSON answer.
-// Supports text + optional image (base64 data URL). Voice is handled client-side.
+// AI tutor: math/physics/chemistry/trig/geometry. Uses Google Gemini directly
+// via the user-supplied GEMINI_API_KEY. Returns a structured JSON answer.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -36,11 +35,18 @@ Rules:
   * Show the answer with units.
   * In "steps", explicitly write SOH-CAH-TOA, identify opposite/adjacent/hypotenuse, set up the equation, solve.
   * Include plot.type = "triangle" with the relevant angle (degrees) and labelled side strings.
-- For geometry/area/perimeter of a shape (square, circle, rectangle, hexagon, square-in-circle, etc.), use plot.type = "shape" with the chosen shape name and dimensions, and put the area/perimeter result in "label".
-- For chemistry questions about a chemical / compound / reaction, list the involved element symbols in plot.type = "elements" so the periodic table can highlight them.
+- For geometry/area/perimeter of a shape, use plot.type = "shape" with dimensions and put the area/perimeter in "label".
+- For chemistry questions about a chemical / compound / reaction, list the involved element symbols in plot.type = "elements".
 - Otherwise plot is null.
 - Keep steps concise, one logical step per item, plain unicode (no LaTeX).
 - Output JSON only, no prose around it.`;
+
+// Strip ```json fences if Gemini wraps the response.
+function extractJson(s: string): string {
+  const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fence) return fence[1].trim();
+  return s.trim();
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -54,32 +60,34 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
-    // Build user message (multimodal if an image is provided).
-    const userContent: unknown = imageBase64
-      ? [
-          { type: "text", text: question || "Solve / explain this problem." },
-          { type: "image_url", image_url: { url: imageBase64 } },
-        ]
-      : question;
+    // Build Gemini parts (text + optional inline image).
+    const parts: unknown[] = [
+      { text: question || "Solve / explain this problem." },
+    ];
+    if (imageBase64) {
+      // imageBase64 looks like "data:image/jpeg;base64,XXXX" — split safely.
+      const m = String(imageBase64).match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.*)$/);
+      if (m) {
+        parts.push({ inlineData: { mimeType: m[1], data: m[2] } });
+      }
+    }
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const model = "gemini-2.0-flash";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+    const resp = await fetch(url, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        // Upgrade: Gemini 2.5 Pro with high reasoning effort for max STEM accuracy.
-        model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userContent },
-        ],
-        response_format: { type: "json_object" },
-        reasoning: { effort: "high" },
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ role: "user", parts }],
+        generationConfig: {
+          temperature: 0.2,
+          responseMimeType: "application/json",
+        },
       }),
     });
 
@@ -88,24 +96,21 @@ serve(async (req) => {
         status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    if (resp.status === 402) {
-      return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
     if (!resp.ok) {
       const t = await resp.text();
-      console.error("Gateway error", resp.status, t);
-      return new Response(JSON.stringify({ error: "AI gateway error" }), {
+      console.error("Gemini error", resp.status, t);
+      return new Response(JSON.stringify({ error: `Gemini error: ${t.slice(0, 300)}` }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const data = await resp.json();
-    const content: string = data.choices?.[0]?.message?.content ?? "{}";
+    const content: string =
+      data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") ?? "{}";
+
     let parsed: unknown;
     try {
-      parsed = JSON.parse(content);
+      parsed = JSON.parse(extractJson(content));
     } catch {
       parsed = { answer: content, steps: [], plot: null };
     }
