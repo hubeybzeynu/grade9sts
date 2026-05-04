@@ -12,8 +12,9 @@ import ExamResultPage from '@/components/ExamResultPage';
 import ReportCardPage from '@/components/ReportCardPage';
 import InfoPage from '@/components/InfoPage';
 import ToolsFab from '@/components/ToolsFab';
-import TelegramBotPrompt from '@/components/TelegramBotPrompt';
 import { supabase } from '@/integrations/supabase/client';
+import { cloudSupabase } from '@/integrations/supabase/cloudClient';
+import { botDeepLink, getBotUsername, getDeviceLinkId } from '@/lib/telegramBot';
 import type { Session } from '@supabase/supabase-js';
 
 const Index = () => {
@@ -69,25 +70,52 @@ const Index = () => {
     setSplashDone(true);
   };
 
-  const handleOnboardComplete = () => {
-    localStorage.setItem('portal_onboarded', 'true');
-    setOnboarded(true);
-  };
+  // "Get Started" — register pending Telegram link tied to the Google account,
+  // then open the bot deep link directly (no extra prompt screen).
+  const handleOnboardComplete = useCallback(async () => {
+    try {
+      const deviceId = getDeviceLinkId();
+      const userEmail = session?.user?.email || '';
+      const meta = (session?.user?.user_metadata || {}) as Record<string, unknown>;
+      const userName =
+        (meta.full_name as string) ||
+        (meta.name as string) ||
+        userEmail.split('@')[0] ||
+        'Visitor';
+
+      // Register the pending link + notify admin (best-effort).
+      await cloudSupabase.functions.invoke('telegram-link', {
+        body: { device_link_id: deviceId, user_email: userEmail, user_name: userName },
+      }).catch((e) => console.warn('telegram-link failed', e));
+
+      // Resolve bot username and open the deep link directly.
+      const username = await getBotUsername();
+      const url = botDeepLink(username, deviceId);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (e) {
+      console.warn('Get Started flow error', e);
+    } finally {
+      localStorage.setItem('portal_onboarded', 'true');
+      setOnboarded(true);
+    }
+  }, [session]);
 
   if (!splashDone) {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
-  if (!onboarded) {
+  // STEP 1: Google login first.
+  if (authReady && !session) {
+    return <LoginGate onLogin={() => { /* session arrives via listener */ }} />;
+  }
+
+  // STEP 2: Welcome onboarding (after login).
+  if (session && !onboarded) {
     return (
       <AnimatePresence>
         <WelcomeOnboarding onComplete={handleOnboardComplete} />
       </AnimatePresence>
     );
-  }
-
-  if (authReady && !session) {
-    return <LoginGate onLogin={() => { /* session arrives via listener */ }} />;
   }
 
   const renderPage = () => {
@@ -115,7 +143,6 @@ const Index = () => {
     <div className="min-h-screen">
       <Navbar currentPage={currentPage} onNavigate={navigateTo} />
       <ToolsFab />
-      <TelegramBotPrompt />
       <div key={currentPage}>{renderPage()}</div>
     </div>
   );

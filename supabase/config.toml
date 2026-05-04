@@ -8,3 +8,15 @@ verify_jwt = false
 
 [functions.telegram-notify]
 verify_jwt = false
+
+[functions.telegram-link]
+verify_jwt = false
+
+[functions.telegram-link-status]
+verify_jwt = false
+
+[functions.telegram-bot]
+verify_jwt = false
+
+[functions.textbook-chat]
+verify_jwt = false
