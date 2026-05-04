@@ -64,129 +64,11 @@ serve(async (req) => {
 
     if (!chatId) return new Response("OK");
 
-    // ============ LINKING GATE ============
-    // Every chat must be linked to a website visitor (Google account) via the
-    // ?start=<deviceId> deep link. Without it the bot does nothing.
-    const fromUser = message?.from || callbackQuery?.from;
-    const tgUsername = fromUser?.username || "";
-    const tgFirstName = fromUser?.first_name || "";
-    const tgLastName = fromUser?.last_name || "";
-    const tgFullName = [tgFirstName, tgLastName].filter(Boolean).join(" ") || "Telegram user";
-
-    // Helper to notify the admin (manager) chat.
-    const notifyAdmin = async (txt: string) => {
-      const adminChat = Deno.env.get("TELEGRAM_ADMIN_CHAT_ID");
-      if (!adminChat) return;
-      try {
-        await fetch(`${TELEGRAM_API}${BOT_TOKEN}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: adminChat, text: txt, parse_mode: "HTML",
-            disable_web_page_preview: true,
-          }),
-        });
-      } catch (e) { console.error("notifyAdmin failed", e); }
-    };
-
-    // Handle /start <payload> — link this chat to the website visitor.
-    if (text.startsWith("/start")) {
-      const parts = text.split(/\s+/);
-      const payload = parts[1] || "";
-      if (payload) {
-        const { data: pending } = await supabase
-          .from("telegram_links")
-          .select("*")
-          .eq("device_link_id", payload)
-          .maybeSingle();
-        if (pending) {
-          // Link (or relink) this chat.
-          await supabase.from("telegram_links")
-            .update({
-              telegram_chat_id: chatId,
-              telegram_username: tgUsername || null,
-              telegram_first_name: tgFullName,
-              linked: true,
-              linked_at: new Date().toISOString(),
-            })
-            .eq("device_link_id", payload);
-
-          await send(chatId,
-            `✅ <b>Connected!</b>\n\n` +
-            `Welcome <b>${escapeHtml(tgFullName)}</b>!\n\n` +
-            `🏫 This is the <b>ቅዱስ ቴሬዛ Grade 9 Portal</b> bot. You can now access:\n` +
-            `• 📚 Textbooks & content\n` +
-            `• 👥 Student directory\n` +
-            `• 📝 Mid & 📋 final exam results\n` +
-            `• 🎓 Report cards\n` +
-            `• 📊 Ministry results\n\n` +
-            `Tap a button below to begin.`,
-            { reply_markup: mainMenuKeyboard },
-          );
-
-          await notifyAdmin(
-            `🔗 <b>Telegram linked to website user</b>\n\n` +
-            `👤 <b>Google name:</b> ${escapeHtml(pending.user_name || "(unknown)")}\n` +
-            `📧 <b>Google email:</b> ${escapeHtml(pending.user_email || "(unknown)")}\n` +
-            `💬 <b>Telegram:</b> ${escapeHtml(tgFullName)}` +
-              (tgUsername ? ` (@${escapeHtml(tgUsername)})` : "") +
-            `\n🆔 <b>Chat ID:</b> <code>${chatId}</code>`,
-          );
-          return new Response("OK");
-        }
-        // Payload provided but unknown — treat as not linked.
-      }
-
-      // /start without a payload — check if this chat is already linked.
-      const { data: existing } = await supabase
-        .from("telegram_links")
-        .select("linked, user_name, user_email")
-        .eq("telegram_chat_id", chatId)
-        .eq("linked", true)
-        .maybeSingle();
-      if (!existing) {
-        await send(chatId,
-          `🔒 <b>Access restricted</b>\n\n` +
-          `This bot only works for visitors of the <b>ቅዱስ ቴሬዛ Grade 9 Portal</b>.\n\n` +
-          `👉 Please open the website first, sign in with Google, then tap <b>“Get Started”</b>. ` +
-          `That button will bring you back here automatically and unlock the bot.\n\n` +
-          `🌐 ${PORTAL_URL}`,
-          {
-            reply_markup: { inline_keyboard: [[{ text: "🌐 Open Portal", url: PORTAL_URL }]] },
-          },
-        );
-        return new Response("OK");
-      }
-      // Already linked — fall through to normal /start menu below.
-    }
-
-    // For ALL other messages: ensure this chat is linked.
-    {
-      const { data: linkedRow } = await supabase
-        .from("telegram_links")
-        .select("linked")
-        .eq("telegram_chat_id", chatId)
-        .eq("linked", true)
-        .maybeSingle();
-      if (!linkedRow) {
-        await send(chatId,
-          `🔒 You need to connect via the website first.\n\n` +
-          `Open ${PORTAL_URL}, sign in with Google, then tap <b>“Get Started”</b>.`,
-          {
-            reply_markup: { inline_keyboard: [[{ text: "🌐 Open Portal", url: PORTAL_URL }]] },
-          },
-        );
-        return new Response("OK");
-      }
-    }
-
-    if (callbackQuery) {
-      await fetch(`${TELEGRAM_API}${BOT_TOKEN}/answerCallbackQuery`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ callback_query_id: callbackQuery.id }),
-      });
-    }
+    // ----- Telegram helpers (defined first so the linking gate can use them) -----
+    const escapeHtml = (s: string) =>
+      String(s ?? "").replace(/[&<>"']/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!),
+      );
 
     const send = async (cid: number, txt: string, opts: any = {}) => {
       const res = await fetch(`${TELEGRAM_API}${BOT_TOKEN}/sendMessage`, {
@@ -238,6 +120,131 @@ serve(async (req) => {
       { key: "hpe", name: "🏃 HPE" },
       { key: "amharic", name: "📖 Amharic" },
     ];
+
+    // ============ LINKING GATE ============
+    // Every chat must be linked to a website visitor (Google account) via the
+    // ?start=<deviceId> deep link. Without it the bot does nothing.
+    const fromUser = message?.from || callbackQuery?.from;
+    const tgUsername = fromUser?.username || "";
+    const tgFirstName = fromUser?.first_name || "";
+    const tgLastName = fromUser?.last_name || "";
+    const tgFullName = [tgFirstName, tgLastName].filter(Boolean).join(" ") || "Telegram user";
+
+    const notifyAdmin = async (txt: string) => {
+      const adminChat = Deno.env.get("TELEGRAM_ADMIN_CHAT_ID");
+      if (!adminChat) return;
+      try {
+        await fetch(`${TELEGRAM_API}${BOT_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: adminChat, text: txt, parse_mode: "HTML",
+            disable_web_page_preview: true,
+          }),
+        });
+      } catch (e) { console.error("notifyAdmin failed", e); }
+    };
+
+    // Handle /start <payload> — link this chat to the website visitor.
+    if (text.startsWith("/start")) {
+      const parts = text.split(/\s+/);
+      const payload = parts[1] || "";
+      if (payload) {
+        const { data: pending } = await supabase
+          .from("telegram_links")
+          .select("*")
+          .eq("device_link_id", payload)
+          .maybeSingle();
+        if (pending) {
+          const wasAlreadyLinked = !!pending.linked && pending.telegram_chat_id === chatId;
+          await supabase.from("telegram_links")
+            .update({
+              telegram_chat_id: chatId,
+              telegram_username: tgUsername || null,
+              telegram_first_name: tgFullName,
+              linked: true,
+              linked_at: new Date().toISOString(),
+            })
+            .eq("device_link_id", payload);
+
+          await send(chatId,
+            `✅ <b>Connected!</b>\n\n` +
+            `Welcome <b>${escapeHtml(tgFullName)}</b>!\n\n` +
+            `🏫 This is the <b>ቅዱስ ቴሬዛ Grade 9 Portal</b> bot. You can now access:\n` +
+            `• 📚 Textbooks & content\n` +
+            `• 👥 Student directory\n` +
+            `• 📝 Mid & 📋 final exam results\n` +
+            `• 🎓 Report cards\n` +
+            `• 📊 Ministry results\n\n` +
+            `Tap a button below to begin.`,
+            { reply_markup: mainMenuKeyboard },
+          );
+
+          if (!wasAlreadyLinked) {
+            await notifyAdmin(
+              `🔗 <b>Telegram linked to website user</b>\n\n` +
+              `👤 <b>Google name:</b> ${escapeHtml(pending.user_name || "(unknown)")}\n` +
+              `📧 <b>Google email:</b> ${escapeHtml(pending.user_email || "(unknown)")}\n` +
+              `💬 <b>Telegram:</b> ${escapeHtml(tgFullName)}` +
+                (tgUsername ? ` (@${escapeHtml(tgUsername)})` : "") +
+              `\n🆔 <b>Chat ID:</b> <code>${chatId}</code>`,
+            );
+          }
+          return new Response("OK");
+        }
+      }
+
+      // /start without a valid payload — only allow if this chat is already linked.
+      const { data: existing } = await supabase
+        .from("telegram_links")
+        .select("linked")
+        .eq("telegram_chat_id", chatId)
+        .eq("linked", true)
+        .maybeSingle();
+      if (!existing) {
+        await send(chatId,
+          `🔒 <b>Access restricted</b>\n\n` +
+          `This bot only works for visitors of the <b>ቅዱስ ቴሬዛ Grade 9 Portal</b>.\n\n` +
+          `👉 Please open the website first, sign in with Google, then tap <b>“Get Started”</b>. ` +
+          `That button will bring you back here automatically and unlock the bot.\n\n` +
+          `🌐 ${PORTAL_URL}`,
+          {
+            reply_markup: { inline_keyboard: [[{ text: "🌐 Open Portal", url: PORTAL_URL }]] },
+          },
+        );
+        return new Response("OK");
+      }
+      // Already linked — fall through to normal /start menu below.
+    }
+
+    // For ALL other messages: ensure this chat is linked.
+    {
+      const { data: linkedRow } = await supabase
+        .from("telegram_links")
+        .select("linked")
+        .eq("telegram_chat_id", chatId)
+        .eq("linked", true)
+        .maybeSingle();
+      if (!linkedRow) {
+        await send(chatId,
+          `🔒 You need to connect via the website first.\n\n` +
+          `Open ${PORTAL_URL}, sign in with Google, then tap <b>“Get Started”</b>.`,
+          {
+            reply_markup: { inline_keyboard: [[{ text: "🌐 Open Portal", url: PORTAL_URL }]] },
+          },
+        );
+        return new Response("OK");
+      }
+    }
+
+    if (callbackQuery) {
+      await fetch(`${TELEGRAM_API}${BOT_TOKEN}/answerCallbackQuery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ callback_query_id: callbackQuery.id }),
+      });
+    }
+
 
     // ============ REPLY-BASED CONTEXT DETECTION ============
     // If user is replying to a bot message, detect context from that message
