@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, Filter } from 'lucide-react';
-import { students as allStudents, Student } from '@/data/students';
+import { Search, User } from 'lucide-react';
+import type { Student } from '@/data/students';
 import StudentDetailModal from './StudentDetailModal';
+import { supabase } from '@/integrations/supabase/client';
 
 interface StudentsPageProps {
   onNavigate?: (page: string) => void;
@@ -10,24 +11,73 @@ interface StudentsPageProps {
 
 const SECTIONS = ['all', '9A', '9B', '9C'] as const;
 
+interface DbStudent {
+  id: number;
+  name: string;
+  english_name: string;
+  age: number | null;
+  gender: string | null;
+  section: string | null;
+  image_url: string | null;
+  download_url: string | null;
+  telegram: string | null;
+  instagram: string | null;
+}
+
+const mapRow = (r: DbStudent): Student => ({
+  id: r.id,
+  name: r.name,
+  englishName: r.english_name,
+  age: r.age ?? 0,
+  gender: r.gender ?? '',
+  section: r.section ?? '',
+  imageUrl: r.image_url ?? '',
+  downloadUrl: r.download_url ?? '',
+  telegram: r.telegram,
+  instagram: r.instagram,
+});
+
 const StudentsPage = ({ onNavigate }: StudentsPageProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [genderFilter, setGenderFilter] = useState<'all' | 'Male' | 'Female'>('all');
   const [sectionFilter, setSectionFilter] = useState<string>('all');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    const fetchAll = async () => {
+      const { data, error } = await supabase
+        .from('students')
+        .select('id,name,english_name,age,gender,section,image_url,download_url,telegram,instagram')
+        .order('id', { ascending: true });
+      if (!active) return;
+      if (error) { console.error('students fetch', error); setLoading(false); return; }
+      setAllStudents(((data || []) as DbStudent[]).map(mapRow));
+      setLoading(false);
+    };
+    fetchAll();
+    const channel = supabase
+      .channel('students-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, fetchAll)
+      .subscribe();
+    return () => { active = false; supabase.removeChannel(channel); };
+  }, []);
 
   const filteredStudents = useMemo(() => {
     return allStudents
       .filter((student) => {
+        const q = searchQuery.toLowerCase();
         const matchesSearch =
-          student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          student.englishName.toLowerCase().includes(searchQuery.toLowerCase());
+          student.name.toLowerCase().includes(q) ||
+          student.englishName.toLowerCase().includes(q);
         const matchesGender = genderFilter === 'all' || student.gender === genderFilter;
         const matchesSection = sectionFilter === 'all' || student.section === sectionFilter;
         return matchesSearch && matchesGender && matchesSection;
       })
       .sort((a, b) => a.englishName.localeCompare(b.englishName));
-  }, [searchQuery, genderFilter, sectionFilter]);
+  }, [allStudents, searchQuery, genderFilter, sectionFilter]);
 
   return (
     <>
