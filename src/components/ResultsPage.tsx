@@ -221,12 +221,14 @@ const ResultsPage = () => {
         initial="hidden"
         animate="visible"
         variants={containerVariants}
-        className="min-h-screen pt-16 pb-20 px-4"
+        className="min-h-screen pt-28 pb-16 px-4"
       >
-        <div className="max-w-2xl mx-auto">
-          <div className="py-4 mb-2">
-            <h1 className="text-xl font-bold text-foreground">Ministry Results</h1>
-            <p className="text-muted-foreground text-xs mt-0.5">Enter your student ID to view results</p>
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3">
+              <span className="gradient-text">Ministry</span> Results
+            </h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Enter your student ID to view your exam results</p>
           </div>
 
           {/* Search Box */}
