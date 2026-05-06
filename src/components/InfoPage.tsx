@@ -53,7 +53,7 @@ const InfoPage = ({ onBack, user }: InfoPageProps) => {
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="min-h-screen pt-16 pb-20 px-4"
+        className="min-h-screen pt-28 pb-16 px-4"
       >
         <div className="max-w-lg mx-auto">
           <button
@@ -213,7 +213,7 @@ const InfoPage = ({ onBack, user }: InfoPageProps) => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen pt-16 pb-20 px-4"
+      className="min-h-screen pt-28 pb-16 px-4"
     >
       <div className="max-w-lg mx-auto">
         <div className="py-4 mb-2">
