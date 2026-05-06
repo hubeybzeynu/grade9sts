@@ -263,15 +263,17 @@ const ExamResultPage = ({ type }: ExamResultPageProps) => {
         initial="hidden"
         animate="visible"
         variants={containerVariants}
-        className="min-h-screen pt-16 pb-20 px-4"
+        className="min-h-screen pt-28 pb-16 px-4"
       >
-        <div className="max-w-2xl mx-auto">
-          <div className="py-4 mb-2">
-            <h1 className="text-xl font-bold text-foreground">{title} Results</h1>
-            <p className="text-muted-foreground text-xs mt-0.5">Enter your student number to view results</p>
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3">
+              <span className="gradient-text">{title}</span> Results
+            </h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Enter your student number to view your {title.toLowerCase()} results</p>
           </div>
 
-          <motion.div variants={itemVariants} className="bg-card rounded-2xl p-5 mb-4 border border-border shadow-sm">
+          <motion.div variants={itemVariants} className="glass-card p-5 sm:p-6 mb-4">
             {loading ? (
               <div className="text-center py-8">
                 <motion.div

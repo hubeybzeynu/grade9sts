@@ -232,11 +232,13 @@ const ReportCardPage = () => {
     : `Promoted to ${reportCard?.promoted_to ? reportCard.promoted_to.replace(/^grade\s*/i, 'Grade ') : `Grade ${gradeNum + 1}`}`;
 
   return (
-    <div className="pt-16 pb-20 px-4 min-h-screen">
+    <div className="pt-28 pb-16 px-4 min-h-screen">
       <div className="max-w-5xl mx-auto">
-        <div className="py-4 mb-2">
-          <h1 className="text-xl font-bold text-foreground">Report Card</h1>
-          <p className="text-muted-foreground text-xs mt-0.5">View your student report card</p>
+        <div className="text-center mb-8">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3">
+            <span className="gradient-text">Report</span> Card
+          </h1>
+          <p className="text-muted-foreground text-sm sm:text-base">View your full student academic report</p>
         </div>
 
         {/* Search */}

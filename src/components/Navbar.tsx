@@ -1,5 +1,16 @@
 import { motion } from 'framer-motion';
-import { Home, BookOpen, Users, Award, MoreHorizontal, ClipboardList, FileCheck, FileText, Info } from 'lucide-react';
+import {
+  Home,
+  BookOpen,
+  Users,
+  Award,
+  ClipboardList,
+  FileCheck,
+  FileText,
+  Info,
+  Menu,
+  X,
+} from 'lucide-react';
 import { useState } from 'react';
 
 interface NavbarProps {
@@ -7,128 +18,115 @@ interface NavbarProps {
   onNavigate: (page: string) => void;
 }
 
-const mainTabs = [
+const navLinks = [
   { key: 'home', label: 'Home', icon: Home },
-  { key: 'textbooks', label: 'Books', icon: BookOpen },
+  { key: 'textbooks', label: 'Textbooks', icon: BookOpen },
   { key: 'students', label: 'Students', icon: Users },
-  { key: 'more', label: 'More', icon: MoreHorizontal },
-];
-
-const moreItems = [
   { key: 'mid', label: 'Mid Exam', icon: ClipboardList },
   { key: 'final', label: 'Final Exam', icon: FileCheck },
   { key: 'report', label: 'Report Card', icon: FileText },
-  { key: 'results', label: 'Ministry Results', icon: Award },
+  { key: 'results', label: 'Ministry', icon: Award },
 ];
 
 const Navbar = ({ currentPage, onNavigate }: NavbarProps) => {
-  const [showMore, setShowMore] = useState(false);
-  const isMoreActive = moreItems.some(item => item.key === currentPage);
+  const [open, setOpen] = useState(false);
 
-  const handleTabClick = (key: string) => {
-    if (key === 'more') {
-      setShowMore(!showMore);
-    } else {
-      setShowMore(false);
-      onNavigate(key);
-    }
+  const go = (key: string) => {
+    setOpen(false);
+    onNavigate(key);
   };
 
   return (
     <>
-      {/* Top App Bar — Info button moved to LEFT of the title so it isn't covered by the floating Tools button on the right. */}
-      <div className="fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-between px-3 bg-card border-b border-border">
-        <div className="flex items-center gap-2">
+      {/* Top website-style nav */}
+      <nav className="fixed top-0 left-0 right-0 z-50 px-3 pt-3">
+        <div className="max-w-7xl mx-auto glass-card flex items-center justify-between gap-3 px-4 py-2.5">
           <button
-            onClick={() => onNavigate('info')}
-            aria-label="Info"
-            className={`p-2 rounded-full transition-colors ${
-              currentPage === 'info' ? 'bg-primary/15 text-primary' : 'text-muted-foreground active:bg-muted'
-            }`}
+            onClick={() => go('home')}
+            className="flex items-center gap-2 shrink-0"
+            aria-label="Home"
           >
-            <Info className="w-5 h-5" />
+            <img
+              src="/logo.jpg"
+              alt="Logo"
+              className="w-9 h-9 rounded-full border-2 border-primary/40 object-cover"
+            />
+            <span className="hidden sm:inline gradient-text font-bold text-base lg:text-lg whitespace-nowrap">
+              Grade 9 STS Portal
+            </span>
           </button>
-          <img src="/logo.jpg" alt="Logo" className="w-8 h-8 rounded-full" />
-          <span className="text-base font-semibold text-foreground truncate">Grade 9 Portal</span>
-        </div>
-        {/* Right side intentionally left empty — the floating ToolsFab lives there (top-3 right-3). */}
-        <div className="w-11" aria-hidden="true" />
-      </div>
 
-      {/* More Menu Overlay */}
-      {showMore && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm"
-          onClick={() => setShowMore(false)}
-        />
-      )}
-
-      {/* More Menu Sheet */}
-      {showMore && (
-        <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="fixed bottom-16 left-0 right-0 z-50 bg-card border-t border-border rounded-t-2xl p-2 shadow-xl"
-        >
-          {moreItems.map((item) => (
-            <button
-              key={item.key}
-              onClick={() => {
-                setShowMore(false);
-                onNavigate(item.key);
-              }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                currentPage === item.key
-                  ? 'bg-primary/15 text-primary'
-                  : 'text-foreground active:bg-muted'
-              }`}
-            >
-              <item.icon className="w-5 h-5" />
-              {item.label}
-            </button>
-          ))}
-        </motion.div>
-      )}
-
-      {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border safe-area-bottom">
-        <div className="flex items-stretch justify-around h-16 max-w-lg mx-auto">
-          {mainTabs.map((tab) => {
-            const isActive = tab.key === 'more' ? isMoreActive || showMore : currentPage === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => handleTabClick(tab.key)}
-                className="flex flex-col items-center justify-center flex-1 relative py-1 transition-colors"
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="bottomNavIndicator"
-                    className="absolute top-1 w-8 h-[3px] rounded-full bg-primary"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
-                )}
-                <tab.icon
-                  className={`w-5 h-5 mb-0.5 transition-colors ${
-                    isActive ? 'text-primary' : 'text-muted-foreground'
-                  }`}
-                />
-                <span
-                  className={`text-[10px] font-medium transition-colors ${
-                    isActive ? 'text-primary' : 'text-muted-foreground'
+          {/* Desktop links */}
+          <div className="hidden md:flex items-center gap-1">
+            {navLinks.map((l) => {
+              const active = currentPage === l.key;
+              const Icon = l.icon;
+              return (
+                <button
+                  key={l.key}
+                  onClick={() => go(l.key)}
+                  className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                    active
+                      ? 'bg-primary text-primary-foreground shadow-md'
+                      : 'text-foreground/80 hover:bg-white/10 hover:text-foreground'
                   }`}
                 >
-                  {tab.label}
-                </span>
-              </button>
-            );
-          })}
+                  <Icon className="w-4 h-4" />
+                  <span className="hidden lg:inline">{l.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => go('info')}
+              aria-label="Info"
+              className={`p-2 rounded-xl transition-colors ${
+                currentPage === 'info'
+                  ? 'bg-primary/20 text-primary'
+                  : 'text-muted-foreground hover:bg-white/10'
+              }`}
+            >
+              <Info className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setOpen((o) => !o)}
+              className="md:hidden p-2 rounded-xl bg-white/5 hover:bg-white/10 text-foreground"
+              aria-label="Menu"
+            >
+              {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile drawer */}
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="md:hidden max-w-7xl mx-auto mt-2 glass-card p-2 grid grid-cols-2 gap-1.5"
+          >
+            {navLinks.map((l) => {
+              const active = currentPage === l.key;
+              const Icon = l.icon;
+              return (
+                <button
+                  key={l.key}
+                  onClick={() => go(l.key)}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    active
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-foreground/80 hover:bg-white/10'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {l.label}
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
       </nav>
     </>
   );

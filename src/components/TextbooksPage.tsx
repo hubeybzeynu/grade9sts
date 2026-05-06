@@ -47,41 +47,51 @@ const TextbooksPage = () => {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="min-h-screen pt-16 pb-20 px-4"
+        className="min-h-screen pt-28 pb-16 px-4"
       >
-        <div className="max-w-lg mx-auto">
-          <div className="py-4 mb-2">
-            <h1 className="text-xl font-bold text-foreground">Textbooks</h1>
-            <p className="text-muted-foreground text-xs mt-0.5">Tap to open • Available offline</p>
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3">
+              <span className="gradient-text">Grade 9</span> Textbooks
+            </h1>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              Select a subject to view or download the textbook · Available offline
+            </p>
           </div>
 
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {textbooks.map((book, index) => (
-              <motion.button
+              <motion.div
                 key={book.subject}
-                initial={{ opacity: 0, x: -16 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.04 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => { setTargetPage(1); setOpenBook({ subject: book.subject, url: book.localPdf }); }}
-                className="w-full flex items-center gap-3 p-3 bg-card rounded-2xl border border-border active:bg-muted transition-colors"
+                whileHover={{ y: -4 }}
+                className="glass-card-hover p-5 flex flex-col"
               >
-                <div className={`w-11 h-11 rounded-xl ${colors[index]} flex items-center justify-center shrink-0`}>
-                  <BookOpen className="w-5 h-5 text-white" />
+                <div className={`w-14 h-14 rounded-2xl ${colors[index]} flex items-center justify-center mb-4 shadow-lg`}>
+                  <BookOpen className="w-7 h-7 text-white" />
                 </div>
-                <div className="flex-1 text-left min-w-0">
-                  <h3 className="text-sm font-semibold text-foreground">{book.subject}</h3>
-                  <p className="text-xs text-muted-foreground">Grade 9 Textbook</p>
+                <h3 className="text-lg font-bold text-foreground mb-1">{book.subject}</h3>
+                <p className="text-xs text-muted-foreground mb-4">Grade 9 Textbook</p>
+                <div className="flex gap-2 mt-auto">
+                  <button
+                    onClick={() => { setTargetPage(1); setOpenBook({ subject: book.subject, url: book.localPdf }); }}
+                    className="btn-gradient flex-1 text-sm py-2 px-3 flex items-center justify-center gap-1.5"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    Open
+                  </button>
+                  <a
+                    href={book.localPdf}
+                    download={`${book.subject}_Grade9.pdf`}
+                    className="btn-ghost px-3 py-2 flex items-center justify-center"
+                    aria-label={`Download ${book.subject}`}
+                  >
+                    <Download className="w-4 h-4" />
+                  </a>
                 </div>
-                <a
-                  href={book.localPdf}
-                  download={`${book.subject}_Grade9.pdf`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="p-2 rounded-lg bg-muted active:bg-accent transition-colors"
-                >
-                  <Download className="w-4 h-4 text-muted-foreground" />
-                </a>
-              </motion.button>
+              </motion.div>
             ))}
           </div>
         </div>
