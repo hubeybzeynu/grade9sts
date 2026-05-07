@@ -58,6 +58,7 @@ const ReportCardPage = () => {
   // Student verification (like ExamResultPage)
   const [verifiedStudent, setVerifiedStudent] = useState<{ id: number; name: string; english_name: string; image_url: string | null } | null>(null);
   const [verifying, setVerifying] = useState(false);
+  const [selectedQuarter, setSelectedQuarter] = useState<'all' | '1st' | '2nd' | '3rd' | '4th'>('all');
 
   // Realtime subscription
   useEffect(() => {
