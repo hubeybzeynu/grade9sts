@@ -384,6 +384,22 @@ const ReportCardPage = () => {
                   <div><span className="text-muted-foreground">Grade:</span> <strong>{reportCard.grade || '-'}</strong></div>
                 </div>
 
+                {/* Quarter selector */}
+                <div className="flex flex-wrap items-center gap-2 mb-5 no-print">
+                  <span className="text-xs text-muted-foreground mr-1">Quarter:</span>
+                  {(['all', ...QUARTERS] as const).map(q => (
+                    <button
+                      key={q}
+                      onClick={() => setSelectedQuarter(q as typeof selectedQuarter)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                        selectedQuarter === q ? 'btn-gradient text-white' : 'btn-ghost'
+                      }`}
+                    >
+                      {q === 'all' ? 'All' : q}
+                    </button>
+                  ))}
+                </div>
+
                 {/* Subjects Table */}
                 <div className="overflow-x-auto mb-6">
                   <table className="w-full text-sm border-collapse">
