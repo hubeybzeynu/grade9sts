@@ -19,7 +19,7 @@ import type { Session } from '@supabase/supabase-js';
 
 const Index = () => {
   const [splashDone, setSplashDone] = useState(
-    () => sessionStorage.getItem('splash_shown') === 'true',
+    () => localStorage.getItem('splash_shown') === 'true',
   );
   const [onboarded, setOnboarded] = useState(
     () => localStorage.getItem('portal_onboarded') === 'true',
@@ -66,7 +66,7 @@ const Index = () => {
   }, [currentPage, pageHistory.length]);
 
   const handleSplashComplete = () => {
-    sessionStorage.setItem('splash_shown', 'true');
+    localStorage.setItem('splash_shown', 'true');
     setSplashDone(true);
   };
 
