@@ -406,7 +406,7 @@ const ReportCardPage = () => {
                     <thead>
                       <tr className="bg-primary/10">
                         <th className="border border-border px-3 py-2 text-left">SUBJECT</th>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <th key={q} className="border border-border px-3 py-2 text-center">{q}</th>
                         ))}
                         <th className="border border-border px-3 py-2 text-center">Average</th>
@@ -420,7 +420,7 @@ const ReportCardPage = () => {
                         return (
                           <tr key={sub} className={isFailing ? 'text-red-500' : ''}>
                             <td className="border border-border px-3 py-2 font-medium">{sub}</td>
-                            {QUARTERS.map(q => (
+                            {visibleQuarters.map(q => (
                               <td key={q} className={`border border-border px-3 py-2 text-center ${marks[q] != null && marks[q]! < 60 ? 'text-red-500 font-bold' : ''}`}>
                                 {marks[q] ?? '-'}
                               </td>
@@ -434,7 +434,7 @@ const ReportCardPage = () => {
                       {/* Total Score Row */}
                       <tr className="bg-primary/5 font-bold">
                         <td className="border border-border px-3 py-2">Total Score in Figure</td>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <td key={q} className="border border-border px-3 py-2 text-center">
                             {getTotalScore(q) ?? '-'}
                           </td>
@@ -444,7 +444,7 @@ const ReportCardPage = () => {
                       {/* Average Row */}
                       <tr className="bg-primary/5 font-bold">
                         <td className="border border-border px-3 py-2">Average</td>
-                        {QUARTERS.map(q => {
+                        {visibleQuarters.map(q => {
                           const total = getTotalScore(q);
                           const avg = total != null ? parseFloat((total / SUBJECTS.length).toFixed(1)) : null;
                           return (
@@ -458,7 +458,7 @@ const ReportCardPage = () => {
                       {/* Rank Row */}
                       <tr className="bg-primary/10 font-bold">
                         <td className="border border-border px-3 py-2">Rank</td>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <td key={q} className="border border-border px-3 py-2 text-center">
                             {reportCard.rank?.[q] ?? '-'}
                           </td>
@@ -476,7 +476,7 @@ const ReportCardPage = () => {
                     <thead>
                       <tr className="bg-primary/10">
                         <th className="border border-border px-3 py-2 text-left">Conduct & Attitude</th>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <th key={q} className="border border-border px-3 py-2 text-center">{q}</th>
                         ))}
                       </tr>
@@ -487,7 +487,7 @@ const ReportCardPage = () => {
                         return (
                           <tr key={item}>
                             <td className="border border-border px-3 py-2">{item}</td>
-                            {QUARTERS.map(q => (
+                            {visibleQuarters.map(q => (
                               <td key={q} className="border border-border px-3 py-2 text-center">
                                 {vals[q] ?? '-'}
                               </td>
@@ -505,7 +505,7 @@ const ReportCardPage = () => {
                     <thead>
                       <tr className="bg-primary/10">
                         <th className="border border-border px-3 py-2 text-left">Attendance</th>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <th key={q} className="border border-border px-3 py-2 text-center">{q}</th>
                         ))}
                       </tr>
@@ -513,7 +513,7 @@ const ReportCardPage = () => {
                     <tbody>
                       <tr>
                         <td className="border border-border px-3 py-2">Total Academic Days</td>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <td key={q} className="border border-border px-3 py-2 text-center">
                             {reportCard.total_academic_days?.[q] ?? '-'}
                           </td>
@@ -521,7 +521,7 @@ const ReportCardPage = () => {
                       </tr>
                       <tr>
                         <td className="border border-border px-3 py-2">Days Present</td>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <td key={q} className="border border-border px-3 py-2 text-center">
                             {reportCard.days_present?.[q] ?? '-'}
                           </td>
@@ -529,7 +529,7 @@ const ReportCardPage = () => {
                       </tr>
                       <tr>
                         <td className="border border-border px-3 py-2">Days Absent</td>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <td key={q} className="border border-border px-3 py-2 text-center">
                             {reportCard.days_absent?.[q] ?? '-'}
                           </td>
@@ -537,7 +537,7 @@ const ReportCardPage = () => {
                       </tr>
                       <tr>
                         <td className="border border-border px-3 py-2">Times Tardy</td>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <td key={q} className="border border-border px-3 py-2 text-center">
                             {reportCard.times_tardy?.[q] ?? '-'}
                           </td>
