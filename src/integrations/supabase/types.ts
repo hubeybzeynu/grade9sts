@@ -188,6 +188,9 @@ export type Database = {
       students: {
         Row: {
           age: number | null
+          birth_day: number
+          birth_month: number
+          birth_year: number | null
           download_url: string | null
           english_name: string
           gender: string | null
@@ -200,6 +203,9 @@ export type Database = {
         }
         Insert: {
           age?: number | null
+          birth_day?: number
+          birth_month?: number
+          birth_year?: number | null
           download_url?: string | null
           english_name: string
           gender?: string | null
@@ -212,6 +218,9 @@ export type Database = {
         }
         Update: {
           age?: number | null
+          birth_day?: number
+          birth_month?: number
+          birth_year?: number | null
           download_url?: string | null
           english_name?: string
           gender?: string | null
