@@ -714,26 +714,64 @@ serve(async (req) => {
       msg += `📅 School Year: ${card.school_year || 'N/A'}\n`;
       msg += `👤 Sex: ${card.sex || 'N/A'} | Age: ${card.age || student?.age || 'N/A'}\n\n`;
 
+      const QS = ['1st', '2nd', '3rd', '4th'];
       if (subjects && typeof subjects === 'object') {
-        msg += `📚 <b>Subjects:</b>\n`;
+        // Per-quarter totals
+        const qTotals: Record<string, number | null> = {};
+        const qCounts: Record<string, number> = {};
+        for (const q of QS) { qTotals[q] = null; qCounts[q] = 0; }
         let totalAvg = 0, subCount = 0, failCount = 0;
+
+        msg += `📚 <b>Subjects (avg across quarters):</b>\n`;
         for (const subj of SUBJECTS) {
           const marks = subjects[subj];
           if (!marks) continue;
-          const vals = ['1st', '2nd', '3rd', '4th'].map((q: string) => marks[q]).filter((v: any) => v != null) as number[];
+          const vals: number[] = [];
+          for (const q of QS) {
+            const v = marks[q];
+            if (v != null) {
+              vals.push(v);
+              qTotals[q] = (qTotals[q] ?? 0) + v;
+              qCounts[q]++;
+            }
+          }
           if (vals.length === 0) continue;
-          const avg = vals.reduce((a: number, b: number) => a + b, 0) / vals.length;
+          const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
           totalAvg += avg; subCount++; if (avg < 60) failCount++;
           msg += `${avg < 60 ? '🔴' : '🟢'} ${subj}: ${avg.toFixed(1)}\n`;
         }
+
+        // Per-quarter summary block
+        msg += `\n📅 <b>Per Quarter:</b>\n`;
+        const completedQuarters: string[] = [];
+        for (const q of QS) {
+          const total = qTotals[q];
+          if (total == null || qCounts[q] === 0) {
+            msg += `• <b>${q}</b>: — (not released)\n`;
+            continue;
+          }
+          completedQuarters.push(q);
+          const qAvg = total / SUBJECTS.length;
+          const rank = card.rank?.[q] ?? '-';
+          msg += `• <b>${q}</b>: avg ${qAvg.toFixed(1)} | total ${total} | rank ${rank}\n`;
+        }
+
         if (subCount > 0) {
           const overallAvg = totalAvg / subCount;
-          msg += `\n📊 <b>Average:</b> ${overallAvg.toFixed(1)}`;
-          msg += `\n📈 <b>Rank:</b> ${card.rank ? Object.values(card.rank).filter((v: any) => v != null)[0] || 'N/A' : 'N/A'}`;
-          if (card.total_students) msg += ` / ${card.total_students}`;
-          const promoted = failCount < 2;
-          const gradeNum = card.grade ? parseInt(card.grade.replace(/\D/g, '')) : 9;
-          msg += `\n\n${promoted ? `✅ <b>Promoted to Grade ${gradeNum + 1}</b>` : `❌ <b>Detained in Grade ${gradeNum}</b>`}`;
+          const overallTotal = Object.values(qTotals).filter(v => v != null).reduce((a: number, b) => a + (b as number), 0);
+          msg += `\n📊 <b>Total Score:</b> ${overallTotal}`;
+          msg += `\n📈 <b>Total Average:</b> ${overallAvg.toFixed(1)}`;
+          if (card.total_students) msg += `\n👥 <b>Class Size:</b> ${card.total_students}`;
+
+          // Promotion only when ALL 4 quarters complete
+          const isComplete = completedQuarters.length === QS.length;
+          if (isComplete) {
+            const promoted = failCount < 2;
+            const gradeNum = card.grade ? parseInt(card.grade.replace(/\D/g, '')) : 9;
+            msg += `\n\n${promoted ? `✅ <b>Promoted to Grade ${gradeNum + 1}</b>` : `❌ <b>Detained in Grade ${gradeNum}</b>`}`;
+          } else {
+            msg += `\n\n⏳ <i>Results in progress (${completedQuarters.length}/4 quarters). Promotion status will appear once all quarters are complete.</i>`;
+          }
         }
       }
 

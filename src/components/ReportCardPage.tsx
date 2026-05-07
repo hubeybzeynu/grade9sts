@@ -58,6 +58,7 @@ const ReportCardPage = () => {
   // Student verification (like ExamResultPage)
   const [verifiedStudent, setVerifiedStudent] = useState<{ id: number; name: string; english_name: string; image_url: string | null } | null>(null);
   const [verifying, setVerifying] = useState(false);
+  const [selectedQuarter, setSelectedQuarter] = useState<'all' | '1st' | '2nd' | '3rd' | '4th'>('all');
 
   // Realtime subscription
   useEffect(() => {
@@ -227,6 +228,9 @@ const ReportCardPage = () => {
 
   const failedCount = reportCard ? getFailedSubjects() : 0;
   const gradeNum = reportCard?.grade ? parseInt(reportCard.grade.replace(/\D/g, '')) : 9;
+  const quartersWithData = QUARTERS.filter(q => getTotalScore(q) != null);
+  const isComplete = quartersWithData.length === QUARTERS.length;
+  const visibleQuarters = selectedQuarter === 'all' ? QUARTERS : [selectedQuarter];
   const statusText = failedCount >= 2
     ? `Detained in Grade ${gradeNum}`
     : `Promoted to ${reportCard?.promoted_to ? reportCard.promoted_to.replace(/^grade\s*/i, 'Grade ') : `Grade ${gradeNum + 1}`}`;
@@ -380,13 +384,29 @@ const ReportCardPage = () => {
                   <div><span className="text-muted-foreground">Grade:</span> <strong>{reportCard.grade || '-'}</strong></div>
                 </div>
 
+                {/* Quarter selector */}
+                <div className="flex flex-wrap items-center gap-2 mb-5 no-print">
+                  <span className="text-xs text-muted-foreground mr-1">Quarter:</span>
+                  {(['all', ...QUARTERS] as const).map(q => (
+                    <button
+                      key={q}
+                      onClick={() => setSelectedQuarter(q as typeof selectedQuarter)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
+                        selectedQuarter === q ? 'btn-gradient text-white' : 'btn-ghost'
+                      }`}
+                    >
+                      {q === 'all' ? 'All' : q}
+                    </button>
+                  ))}
+                </div>
+
                 {/* Subjects Table */}
                 <div className="overflow-x-auto mb-6">
                   <table className="w-full text-sm border-collapse">
                     <thead>
                       <tr className="bg-primary/10">
                         <th className="border border-border px-3 py-2 text-left">SUBJECT</th>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <th key={q} className="border border-border px-3 py-2 text-center">{q}</th>
                         ))}
                         <th className="border border-border px-3 py-2 text-center">Average</th>
@@ -400,7 +420,7 @@ const ReportCardPage = () => {
                         return (
                           <tr key={sub} className={isFailing ? 'text-red-500' : ''}>
                             <td className="border border-border px-3 py-2 font-medium">{sub}</td>
-                            {QUARTERS.map(q => (
+                            {visibleQuarters.map(q => (
                               <td key={q} className={`border border-border px-3 py-2 text-center ${marks[q] != null && marks[q]! < 60 ? 'text-red-500 font-bold' : ''}`}>
                                 {marks[q] ?? '-'}
                               </td>
@@ -414,7 +434,7 @@ const ReportCardPage = () => {
                       {/* Total Score Row */}
                       <tr className="bg-primary/5 font-bold">
                         <td className="border border-border px-3 py-2">Total Score in Figure</td>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <td key={q} className="border border-border px-3 py-2 text-center">
                             {getTotalScore(q) ?? '-'}
                           </td>
@@ -424,7 +444,7 @@ const ReportCardPage = () => {
                       {/* Average Row */}
                       <tr className="bg-primary/5 font-bold">
                         <td className="border border-border px-3 py-2">Average</td>
-                        {QUARTERS.map(q => {
+                        {visibleQuarters.map(q => {
                           const total = getTotalScore(q);
                           const avg = total != null ? parseFloat((total / SUBJECTS.length).toFixed(1)) : null;
                           return (
@@ -438,7 +458,7 @@ const ReportCardPage = () => {
                       {/* Rank Row */}
                       <tr className="bg-primary/10 font-bold">
                         <td className="border border-border px-3 py-2">Rank</td>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <td key={q} className="border border-border px-3 py-2 text-center">
                             {reportCard.rank?.[q] ?? '-'}
                           </td>
@@ -456,7 +476,7 @@ const ReportCardPage = () => {
                     <thead>
                       <tr className="bg-primary/10">
                         <th className="border border-border px-3 py-2 text-left">Conduct & Attitude</th>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <th key={q} className="border border-border px-3 py-2 text-center">{q}</th>
                         ))}
                       </tr>
@@ -467,7 +487,7 @@ const ReportCardPage = () => {
                         return (
                           <tr key={item}>
                             <td className="border border-border px-3 py-2">{item}</td>
-                            {QUARTERS.map(q => (
+                            {visibleQuarters.map(q => (
                               <td key={q} className="border border-border px-3 py-2 text-center">
                                 {vals[q] ?? '-'}
                               </td>
@@ -485,7 +505,7 @@ const ReportCardPage = () => {
                     <thead>
                       <tr className="bg-primary/10">
                         <th className="border border-border px-3 py-2 text-left">Attendance</th>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <th key={q} className="border border-border px-3 py-2 text-center">{q}</th>
                         ))}
                       </tr>
@@ -493,7 +513,7 @@ const ReportCardPage = () => {
                     <tbody>
                       <tr>
                         <td className="border border-border px-3 py-2">Total Academic Days</td>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <td key={q} className="border border-border px-3 py-2 text-center">
                             {reportCard.total_academic_days?.[q] ?? '-'}
                           </td>
@@ -501,7 +521,7 @@ const ReportCardPage = () => {
                       </tr>
                       <tr>
                         <td className="border border-border px-3 py-2">Days Present</td>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <td key={q} className="border border-border px-3 py-2 text-center">
                             {reportCard.days_present?.[q] ?? '-'}
                           </td>
@@ -509,7 +529,7 @@ const ReportCardPage = () => {
                       </tr>
                       <tr>
                         <td className="border border-border px-3 py-2">Days Absent</td>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <td key={q} className="border border-border px-3 py-2 text-center">
                             {reportCard.days_absent?.[q] ?? '-'}
                           </td>
@@ -517,7 +537,7 @@ const ReportCardPage = () => {
                       </tr>
                       <tr>
                         <td className="border border-border px-3 py-2">Times Tardy</td>
-                        {QUARTERS.map(q => (
+                        {visibleQuarters.map(q => (
                           <td key={q} className="border border-border px-3 py-2 text-center">
                             {reportCard.times_tardy?.[q] ?? '-'}
                           </td>
@@ -527,15 +547,49 @@ const ReportCardPage = () => {
                   </table>
                 </div>
 
-                {/* Status */}
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-primary/5 border border-border">
-                  <div className={`text-lg font-bold ${failedCount >= 2 ? 'text-red-500' : 'text-green-500'}`}>
-                    {statusText}
+                {/* Per-quarter summary */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                  {visibleQuarters.map(q => {
+                    const total = getTotalScore(q);
+                    const avg = total != null ? parseFloat((total / SUBJECTS.length).toFixed(1)) : null;
+                    const rank = reportCard.rank?.[q];
+                    return (
+                      <div key={q} className="glass-card p-3 text-center">
+                        <p className="text-[11px] text-muted-foreground uppercase tracking-wide">{q} Quarter</p>
+                        <p className="text-xl font-bold gradient-text mt-1">{avg ?? '-'}</p>
+                        <p className="text-[11px] text-muted-foreground">Total: {total ?? '-'}</p>
+                        <p className="text-[11px] text-muted-foreground">Rank: {rank ?? '-'}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Total Average bottom bar */}
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-primary/5 border border-border mb-4">
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Total Score: </span>
+                    <strong>{getTotalAverage() ?? '-'}</strong>
+                    <span className="mx-3 text-muted-foreground">|</span>
+                    <span className="text-muted-foreground">Total Average: </span>
+                    <strong className="gradient-text text-lg">
+                      {getTotalAverage() != null ? parseFloat((getTotalAverage()! / SUBJECTS.length).toFixed(1)) : '-'}
+                    </strong>
                   </div>
                   {reportCard.remarks && (
                     <div className="text-sm text-muted-foreground">Remarks: {reportCard.remarks}</div>
                   )}
                 </div>
+
+                {/* Promotion — only when all 4 quarters are complete */}
+                {isComplete ? (
+                  <div className={`text-center p-4 rounded-xl border font-bold text-lg ${failedCount >= 2 ? 'text-red-500 border-red-500/30 bg-red-500/5' : 'text-green-500 border-green-500/30 bg-green-500/5'}`}>
+                    {statusText}
+                  </div>
+                ) : (
+                  <div className="text-center p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 text-amber-400 text-sm">
+                    ⏳ Results in progress ({quartersWithData.length}/4 quarters). Promotion status will appear once all quarters are complete.
+                  </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex gap-3 mt-6 no-print">
