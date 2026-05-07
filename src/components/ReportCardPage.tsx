@@ -547,15 +547,49 @@ const ReportCardPage = () => {
                   </table>
                 </div>
 
-                {/* Status */}
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-primary/5 border border-border">
-                  <div className={`text-lg font-bold ${failedCount >= 2 ? 'text-red-500' : 'text-green-500'}`}>
-                    {statusText}
+                {/* Per-quarter summary */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                  {visibleQuarters.map(q => {
+                    const total = getTotalScore(q);
+                    const avg = total != null ? parseFloat((total / SUBJECTS.length).toFixed(1)) : null;
+                    const rank = reportCard.rank?.[q];
+                    return (
+                      <div key={q} className="glass-card p-3 text-center">
+                        <p className="text-[11px] text-muted-foreground uppercase tracking-wide">{q} Quarter</p>
+                        <p className="text-xl font-bold gradient-text mt-1">{avg ?? '-'}</p>
+                        <p className="text-[11px] text-muted-foreground">Total: {total ?? '-'}</p>
+                        <p className="text-[11px] text-muted-foreground">Rank: {rank ?? '-'}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Total Average bottom bar */}
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-primary/5 border border-border mb-4">
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Total Score: </span>
+                    <strong>{getTotalAverage() ?? '-'}</strong>
+                    <span className="mx-3 text-muted-foreground">|</span>
+                    <span className="text-muted-foreground">Total Average: </span>
+                    <strong className="gradient-text text-lg">
+                      {getTotalAverage() != null ? parseFloat((getTotalAverage()! / SUBJECTS.length).toFixed(1)) : '-'}
+                    </strong>
                   </div>
                   {reportCard.remarks && (
                     <div className="text-sm text-muted-foreground">Remarks: {reportCard.remarks}</div>
                   )}
                 </div>
+
+                {/* Promotion — only when all 4 quarters are complete */}
+                {isComplete ? (
+                  <div className={`text-center p-4 rounded-xl border font-bold text-lg ${failedCount >= 2 ? 'text-red-500 border-red-500/30 bg-red-500/5' : 'text-green-500 border-green-500/30 bg-green-500/5'}`}>
+                    {statusText}
+                  </div>
+                ) : (
+                  <div className="text-center p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 text-amber-400 text-sm">
+                    ⏳ Results in progress ({quartersWithData.length}/4 quarters). Promotion status will appear once all quarters are complete.
+                  </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex gap-3 mt-6 no-print">
