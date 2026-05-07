@@ -228,6 +228,9 @@ const ReportCardPage = () => {
 
   const failedCount = reportCard ? getFailedSubjects() : 0;
   const gradeNum = reportCard?.grade ? parseInt(reportCard.grade.replace(/\D/g, '')) : 9;
+  const quartersWithData = QUARTERS.filter(q => getTotalScore(q) != null);
+  const isComplete = quartersWithData.length === QUARTERS.length;
+  const visibleQuarters = selectedQuarter === 'all' ? QUARTERS : [selectedQuarter];
   const statusText = failedCount >= 2
     ? `Detained in Grade ${gradeNum}`
     : `Promoted to ${reportCard?.promoted_to ? reportCard.promoted_to.replace(/^grade\s*/i, 'Grade ') : `Grade ${gradeNum + 1}`}`;
