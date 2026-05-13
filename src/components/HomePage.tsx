@@ -8,6 +8,10 @@ import {
   FileText,
   Sparkles,
   GraduationCap,
+  ShieldCheck,
+  ClipboardEdit,
+  FilePen,
+  ExternalLink,
 } from 'lucide-react';
 
 interface HomePageProps {
@@ -88,6 +92,83 @@ const HomePage = ({ onNavigate }: HomePageProps) => {
             </div>
           </div>
         </motion.div>
+
+        {/* About / Presentation */}
+        <motion.section
+          variants={itemVariants}
+          aria-labelledby="about-portal"
+          className="glass-card p-6 sm:p-8 mb-10"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-11 h-11 rounded-xl bg-accent/15 flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-accent" />
+            </div>
+            <h2 id="about-portal" className="text-xl sm:text-2xl font-bold">
+              About the Portal
+            </h2>
+          </div>
+          <p className="text-muted-foreground text-sm sm:text-base leading-relaxed mb-4">
+            The <span className="text-foreground font-semibold">Grade 9 Student Portal</span> of
+            St. Theresa School is the official digital hub for the 2025 academic year. It unifies
+            the complete Grade 9 experience — digital textbooks, the verified student directory,
+            mid-term and final examination results, full academic report cards, and the
+            Ministry of Education national examination scores — into a single, secure, mobile-first
+            platform built for students, parents, and staff.
+          </p>
+          <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
+            The portal is paired with two dedicated administrative platforms operated by Grade 9
+            teachers. Together they form a closed academic loop: teachers record results, the
+            portal publishes them to verified students.
+          </p>
+
+          <div className="grid sm:grid-cols-2 gap-4 mt-6">
+            <a
+              href="https://teacherssts.lovable.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="glass-card-hover p-5 block"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center">
+                  <ClipboardEdit className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="font-bold">Mid Result Manager</h3>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                A teachers-only platform for entering, reviewing, and publishing mid-term
+                examination scores per subject and per section. Once a teacher submits the
+                results, they appear instantly in the Mid Exam section of this portal for
+                verified students.
+              </p>
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
+                teacherssts.lovable.app <ExternalLink className="w-3 h-3" />
+              </span>
+            </a>
+
+            <a
+              href="https://reportcardsts.lovable.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="glass-card-hover p-5 block"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
+                  <FilePen className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="font-bold">Report Card Manager</h3>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                The official report card administration system used by Grade 9 homeroom
+                teachers to compose quarterly grades, compute averages, assign section ranks,
+                and finalize promotion decisions. Approved report cards are synced to this
+                portal under the Report Card section.
+              </p>
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary">
+                reportcardsts.lovable.app <ExternalLink className="w-3 h-3" />
+              </span>
+            </a>
+          </div>
+        </motion.section>
 
         {/* Feature grid */}
         <motion.div variants={containerVariants}
