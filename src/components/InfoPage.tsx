@@ -71,9 +71,45 @@ const InfoPage = ({ onBack, user }: InfoPageProps) => {
                 <div className="bg-card rounded-2xl p-4 border border-border">
                   <h3 className="text-sm font-semibold text-foreground mb-2">📱 What is this app?</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Grade 9 Portal is a comprehensive student hub designed for Grade 9 students at St. Theresa School.
-                    It provides easy access to all academic resources in one place, optimized for mobile use.
+                    The Grade 9 Student Portal is the official digital hub for Grade 9 students of
+                    St. Theresa School (ቅዱስ ቴሬዛ ት/ቤት). It centralizes textbooks, the verified
+                    student directory, mid-term and final examination results, full academic
+                    report cards, and Ministry of Education national exam results in a single,
+                    secure, mobile-first platform.
                   </p>
+                </div>
+                <div className="bg-card rounded-2xl p-4 border border-border">
+                  <h3 className="text-sm font-semibold text-foreground mb-2">🏫 Mid Result Manager</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-2">
+                    A dedicated teachers-only platform used by Grade 9 instructors to enter,
+                    review, and publish mid-term examination scores per subject and section.
+                    Submitted results sync directly to the Mid Exam section of this portal.
+                  </p>
+                  <a
+                    href="https://teacherssts.lovable.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-primary"
+                  >
+                    teacherssts.lovable.app <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+                <div className="bg-card rounded-2xl p-4 border border-border">
+                  <h3 className="text-sm font-semibold text-foreground mb-2">📋 Report Card Manager</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-2">
+                    The official report card administration system used by homeroom teachers to
+                    compose quarterly grades, compute averages, assign section ranks, and finalize
+                    promotion decisions. Approved report cards appear in the Report Card section
+                    of this portal.
+                  </p>
+                  <a
+                    href="https://reportcardsts.lovable.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-primary"
+                  >
+                    reportcardsts.lovable.app <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
                 <div className="bg-card rounded-2xl p-4 border border-border">
                   <h3 className="text-sm font-semibold text-foreground mb-2">📚 Features</h3>
